@@ -1,5 +1,10 @@
 # Change log
 
+## 0.16.0
+
+1. Migrated to new [github repo](https://github.com/minghuaw/azeventhubs)
+2. Updated `azure_core` to `0.16.0`
+
 ## 0.15.1
 
 - Updated `fe2o3-amqp-ws` to "0.4.0" which comes with an upstream fix of

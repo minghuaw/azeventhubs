@@ -6,8 +6,8 @@ description = "An unofficial AMQP 1.0 rust client for Azure Event Hubs"
 readme = "README.md"
 authors = ["Minghua Wu"]
 license = "MIT"
-repository = "https://github.com/minghuaw/azure-sdk-for-rust/tree/separate_eventhubs_crate/sdk/messaging_eventhubs"
-homepage = "https://github.com/minghuaw/azure-sdk-for-rust/tree/separate_eventhubs_crate/sdk/messaging_eventhubs"
+repository = "https://github.com/minghuaw/azeventhubs"
+homepage = "https://github.com/minghuaw/azeventhubs"
 documentation = "https://docs.rs/azeventhubs"
 
 categories = ["api-bindings"]
