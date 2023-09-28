@@ -1,0 +1,91 @@
+[package]
+name = "azeventhubs"
+version = "0.15.1"
+edition = "2021"
+description = "An unofficial AMQP 1.0 rust client for Azure Event Hubs"
+readme = "README.md"
+authors = ["Minghua Wu"]
+license = "MIT"
+repository = "https://github.com/minghuaw/azure-sdk-for-rust/tree/separate_eventhubs_crate/sdk/messaging_eventhubs"
+homepage = "https://github.com/minghuaw/azure-sdk-for-rust/tree/separate_eventhubs_crate/sdk/messaging_eventhubs"
+documentation = "https://docs.rs/azeventhubs"
+
+categories = ["api-bindings"]
+keywords = ["sdk", "azure", "eventhubs", "amqp", "cloud"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+time = { version = "0.3", features = ["macros"] }
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+const_format = "0.2"
+thiserror = "1"
+futures-util = "0.3"
+log = "0.4"
+urlencoding = "2"
+base64 = "0.21"
+digest = "0.10"
+hmac = "0.12"
+sha2 = "0.10"
+mockall = "0.11"
+async-trait = "0.1"
+rand = "0.8"
+pin-project-lite = "0.2.9"
+serde = "1"
+
+# Azure dependencies
+azure_core = { path = "../core", version = "0.15" }
+
+# AMQP dependencies
+fe2o3-amqp = { version = "0.8.22" }
+fe2o3-amqp-types = "0.7.1"
+fe2o3-amqp-management = "0.2.2"
+fe2o3-amqp-cbs = "0.2"
+serde_amqp = { version = "0.5.9", features = ["derive", "time"] }
+fe2o3-amqp-ws = "0.4.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["rt", "macros", "sync", "time", "net"] }
+tokio-util = "0.7"
+timer-kit = { version = "0.1", features = ["tokio"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Add dependency to getrandom to enable WASM support
+getrandom = { version = "0.2", features = ["js"] }
+tokio = { version = "1", features = ["rt", "macros"]}
+tokio-util = {version = "0.7.3"}
+fluvio-wasm-timer = "0.2"
+timer-kit = { version = "0.1", features = ["fluvio-wasm-timer"] }
+js-sys = "0.3"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+dotenv = "0.15"
+tokio = {version = "1.0", features = ["macros", "rt", "rt-multi-thread"]}
+env_logger = "0.10.0"
+fe2o3-amqp = { version = "0.8.21", features = ["log"] }
+bytes = "1"
+azure_identity = { path = "../identity" }
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+[features]
+default = ["native-tls"]
+
+# CI tests related features
+test_e2e = [] # This enables tests under the `sdk/messaging_eventhubs/tests` directory
+test_integration = [] # TODO: this feature is not used for now
+
+rustls = ["fe2o3-amqp/rustls", "fe2o3-amqp-ws/rustls-tls-webpki-roots"]
+native-tls = ["fe2o3-amqp/native-tls", "fe2o3-amqp-ws/native-tls"]
+
+[[bench]]
+name = "bench_consumer_client_start_up"
+harness = false
+
+[[bench]]
+name = "bench_event_stream_start_up"
+harness = false
+
+[[bench]]
+name = "bench_event_stream"
+harness = false
