@@ -16,7 +16,7 @@ pub type Producer = EventHubProducerClient<BasicRetryPolicy>;
 pub type Consumer = EventHubConsumerClient<BasicRetryPolicy>;
 
 pub fn setup_dotenv() -> Result<PathBuf, dotenv::Error> {
-    dotenv::from_filename("./sdk/messaging_eventhubs/.env")
+    dotenv::from_filename(".env")
 }
 
 pub fn and_nested_result<T, E1, E2>(
