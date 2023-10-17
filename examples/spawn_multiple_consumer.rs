@@ -1,3 +1,9 @@
+//! To run the example with logs printed to stdout, run the following command:
+//! 
+//! ```bash
+//! RUST_LOG=info cargo run --example spawn_multiple_consumer
+//! ```
+
 use std::time::Duration;
 
 use azeventhubs::consumer::{EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, ReadEventOptions};
