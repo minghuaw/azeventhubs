@@ -69,7 +69,7 @@ impl EventHubTokenCredential {
     // pub(crate) const DEFAULT_SCOPE: &str = "https://eventhubs.azure.net/.default";
 
     // `azure_identity` appends "/.default" to the resource internally.
-    pub(crate) const DEFAULT_RESOURCE: &str = "https://eventhubs.azure.net/";
+    pub(crate) const DEFAULT_RESOURCE: &'static str = "https://eventhubs.azure.net/";
 
     /// Gets a `TokenResponse` for the specified resource
     pub(crate) async fn get_token(&self, resource: &str) -> azure_core::Result<TokenResponse> {
