@@ -66,10 +66,10 @@ impl EventHubTokenCredential {
 }
 
 impl EventHubTokenCredential {
-    // pub(crate) const DEFAULT_SCOPE: &str = "https://eventhubs.azure.net/.default";
+    pub(crate) const DEFAULT_SCOPE: &'static str = "https://eventhubs.azure.net/.default";
 
     // `azure_identity` appends "/.default" to the resource internally.
-    pub(crate) const DEFAULT_RESOURCE: &'static str = "https://eventhubs.azure.net/";
+    // pub(crate) const DEFAULT_RESOURCE: &'static str = "https://eventhubs.azure.net/";
 
     /// Gets a `AccessToken` for the specified resource
     pub(crate) async fn get_token(&self, resource: &[&str]) -> azure_core::Result<AccessToken> {
@@ -86,7 +86,7 @@ impl EventHubTokenCredential {
     // }
 
     pub(crate) async fn get_token_using_default_resource(&self) -> azure_core::Result<AccessToken> {
-        self.get_token(&[Self::DEFAULT_RESOURCE]).await
+        self.get_token(&[Self::DEFAULT_SCOPE]).await
     }
 }
 
