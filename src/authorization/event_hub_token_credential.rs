@@ -1,4 +1,4 @@
-use azure_core::auth::{TokenCredential, TokenResponse};
+use azure_core::auth::{TokenCredential, AccessToken};
 
 use super::shared_access_credential::SharedAccessCredential;
 
@@ -66,39 +66,32 @@ impl EventHubTokenCredential {
 }
 
 impl EventHubTokenCredential {
-    // pub(crate) const DEFAULT_SCOPE: &str = "https://eventhubs.azure.net/.default";
+    pub(crate) const DEFAULT_SCOPE: &'static str = "https://eventhubs.azure.net/.default";
 
-    // `azure_identity` appends "/.default" to the resource internally.
-    pub(crate) const DEFAULT_RESOURCE: &'static str = "https://eventhubs.azure.net/";
-
-    /// Gets a `TokenResponse` for the specified resource
-    pub(crate) async fn get_token(&self, resource: &str) -> azure_core::Result<TokenResponse> {
+    /// Gets a `AccessToken` for the specified resource
+    pub(crate) async fn get_token(&self, scopes: &[&str]) -> azure_core::Result<AccessToken> {
         match self {
             EventHubTokenCredential::SharedAccessCredential(credential) => {
-                credential.get_token(resource).await
+                credential.get_token(scopes).await
             }
-            EventHubTokenCredential::Other(credential) => credential.get_token(resource).await,
+            EventHubTokenCredential::Other(credential) => credential.get_token(scopes).await,
         }
     }
 
-    // pub(crate) async fn get_token_using_default_scope(&self) -> azure_core::Result<TokenResponse> {
-    //     self.get_token(Self::DEFAULT_SCOPE).await
-    // }
-
-    pub(crate) async fn get_token_using_default_resource(&self) -> azure_core::Result<TokenResponse> {
-        self.get_token(Self::DEFAULT_RESOURCE).await
+    pub(crate) async fn get_token_using_default_resource(&self) -> azure_core::Result<AccessToken> {
+        self.get_token(&[Self::DEFAULT_SCOPE]).await
     }
 }
 
 cfg_not_wasm32! {
     #[cfg(test)]
     mod tests {
-        use azure_core::auth::AccessToken;
+        use azure_core::auth::Secret;
         use time::macros::datetime;
 
         use crate::authorization::{
             shared_access_credential::SharedAccessCredential,
-            shared_access_signature::SharedAccessSignature, tests::MockTokenCredential,
+            shared_access_signature::SharedAccessSignature,
         };
 
         use super::EventHubTokenCredential;
@@ -106,19 +99,22 @@ cfg_not_wasm32! {
         #[tokio::test]
         async fn get_token_delegates_to_the_source_credential() {
             let token_value = "token";
-            let mut mock_credentials = MockTokenCredential::new();
+            let mut mock_credentials = crate::authorization::tests::MockTokenCredential::new();
             let resource = "the resource value";
-            let token_response = azure_core::auth::TokenResponse {
-                token: AccessToken::new(token_value),
+            let token_response = azure_core::auth::AccessToken {
+                token: Secret::new(token_value),
                 expires_on: datetime!(2015-10-27 00:00:00).assume_utc(),
             };
             mock_credentials
                 .expect_get_token()
                 .times(1)
-                .returning(move |_resource| Ok(token_response.clone()));
+                .returning(move |_resource| {
+                    let token_response_clone = token_response.clone();
+                    Box::pin( async { Ok(token_response_clone) } )
+                });
 
             let credential = EventHubTokenCredential::from(mock_credentials);
-            let token_result = credential.get_token(resource).await;
+            let token_result = credential.get_token(&[resource]).await;
             assert_eq!(token_result.unwrap().token.secret(), token_value);
         }
 

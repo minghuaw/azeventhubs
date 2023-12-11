@@ -28,7 +28,7 @@ const EVENT_HUB_RESOURCE_TYPE_VALUE: &str = concatcp!(VENDOR, ":eventhub");
 /// The value to specify when identifying a partition resource
 const PARTITION_RESOURCE_TYPE_VALUE: &str = concatcp!(VENDOR, ":partition");
 
-pub(self) mod response_map {
+mod response_map {
     //! The set of property mappings to use for reading management-related
     //! responses from the Event Hubs service.
 

@@ -174,6 +174,9 @@ where
         }
         Consumer::Multiple(consumer) => {
             let futs = consumer.inner.into_iter().map(|consumer| consumer.close());
+
+            // We are getting results from the futures anyway, so try_fold doesn't really help
+            #[allow(clippy::manual_try_fold)]
             futures_util::future::join_all(futs).await
                 .into_iter()
                 .fold(Ok(()), |acc, result| acc.and(result))
