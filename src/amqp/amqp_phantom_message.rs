@@ -38,10 +38,7 @@ pub(crate) struct Phantom<T> {
 
 impl<T> Clone for Phantom<T> {
     fn clone(&self) -> Self {
-        Self {
-            serialized_len: self.serialized_len,
-            marker: PhantomData,
-        }
+        *self
     }
 }
 
