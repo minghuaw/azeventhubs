@@ -1,4 +1,4 @@
-use azure_core::auth::TokenResponse;
+use azure_core::auth::AccessToken;
 use fe2o3_amqp_cbs::{token::CbsToken, AsyncCbsTokenProvider};
 use fe2o3_amqp_types::primitives::Timestamp;
 use std::{future::Future, sync::Arc, pin::Pin};
@@ -40,7 +40,7 @@ impl CbsTokenProvider {
     }
 }
 
-fn is_nearing_expiration(token: &TokenResponse, token_expiration_buffer: TimeSpan) -> bool {
+fn is_nearing_expiration(token: &AccessToken, token_expiration_buffer: TimeSpan) -> bool {
     token.expires_on - token_expiration_buffer <= crate::util::time::now_utc()
 }
 
@@ -97,7 +97,7 @@ mod tests {
         use std::sync::Arc;
         use time::Duration as TimeSpan;
 
-        use azure_core::auth::{AccessToken, TokenResponse};
+        use azure_core::auth::{Secret, AccessToken};
         use time::{macros::datetime, OffsetDateTime};
 
         use crate::{
@@ -116,9 +116,11 @@ mod tests {
             mock_credential
                 .expect_get_token()
                 .returning(move |_resource| {
-                    Ok(TokenResponse {
-                        token: AccessToken::new(token_value),
-                        expires_on,
+                    Box::pin(async move {
+                        Ok(AccessToken {
+                            token: Secret::new(token_value),
+                            expires_on,
+                        })
                     })
                 });
 
@@ -148,9 +150,11 @@ mod tests {
                 .expect_get_token()
                 .times(1)
                 .returning(move |_resource| {
-                    Ok(TokenResponse {
-                        token: AccessToken::new(token_value),
-                        expires_on,
+                    Box::pin(async move {
+                        Ok(AccessToken {
+                            token: Secret::new(token_value),
+                            expires_on,
+                        })
                     })
                 });
 
@@ -195,9 +199,11 @@ mod tests {
                 .expect_get_token()
                 .times(2)
                 .returning(move |_resource| {
-                    Ok(TokenResponse {
-                        token: AccessToken::new(token_value),
-                        expires_on,
+                    Box::pin(async move {
+                        Ok(AccessToken {
+                            token: Secret::new(token_value),
+                            expires_on,
+                        })
                     })
                 });
 
