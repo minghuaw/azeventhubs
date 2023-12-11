@@ -69,12 +69,12 @@ impl EventHubTokenCredential {
     pub(crate) const DEFAULT_SCOPE: &'static str = "https://eventhubs.azure.net/.default";
 
     /// Gets a `AccessToken` for the specified resource
-    pub(crate) async fn get_token(&self, resource: &[&str]) -> azure_core::Result<AccessToken> {
+    pub(crate) async fn get_token(&self, scopes: &[&str]) -> azure_core::Result<AccessToken> {
         match self {
             EventHubTokenCredential::SharedAccessCredential(credential) => {
-                credential.get_token(resource).await
+                credential.get_token(scopes).await
             }
-            EventHubTokenCredential::Other(credential) => credential.get_token(resource).await,
+            EventHubTokenCredential::Other(credential) => credential.get_token(scopes).await,
         }
     }
 

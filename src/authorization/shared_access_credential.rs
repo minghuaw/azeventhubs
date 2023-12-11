@@ -89,7 +89,7 @@ impl SharedAccessCredential {
     /// use in authorization against a Event Hubs entity.
     ///
     /// FIXME: this is a temporary workaround until specialization is stablized.
-    pub(crate) async fn get_token(&self, _resource: &[&str]) -> azure_core::Result<AccessToken> {
+    pub(crate) async fn get_token(&self, _scopes: &[&str]) -> azure_core::Result<AccessToken> {
         let mut signature = self.shared_access_signature.lock().map_err(|error| {
             azure_core::Error::new(azure_core::error::ErrorKind::Other, error.to_string())
         })?;
