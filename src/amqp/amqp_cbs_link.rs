@@ -319,7 +319,7 @@ impl AmqpCbsLink {
             Command::RemoveAuthorizationRefresher(link_identifier) => {
                 let key = self.active_link_identifiers.remove(&link_identifier);
                 if let Some(key) = key {
-                    self.delay_queue.remove(&key);
+                    self.delay_queue.try_remove(&key);
                 }
             }
         }
