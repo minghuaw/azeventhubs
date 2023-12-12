@@ -1,5 +1,14 @@
 # Change log
 
+## 0.18.0
+
+1. Updated `azure_core` to `0.18.0`
+2. Removed depcrecated methods
+
+## 0.17.0
+
+1. Updated `azure_core` to `0.17.0`
+
 ## 0.16.0
 
 1. Migrated to new [github repo](https://github.com/minghuaw/azeventhubs)
