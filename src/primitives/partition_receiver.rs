@@ -59,30 +59,6 @@ impl PartitionReceiver<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a new [`PartitionReceiver`] from a connection string.
-    #[deprecated(
-        since = "0.14.1",
-        note = "Please use `new_from_connection_string` instead"
-    )]
-    pub async fn from_connection_string(
-        consumer_group: &str,
-        partition_id: &str,
-        event_position: EventPosition,
-        connection_string: impl Into<String>,
-        event_hub_name: impl Into<Option<String>>,
-        options: PartitionReceiverOptions,
-    ) -> Result<Self, azure_core::Error> {
-        Self::new_from_connection_string(
-            consumer_group,
-            partition_id,
-            event_position,
-            connection_string,
-            event_hub_name,
-            options,
-        )
-        .await
-    }
-
     /// Creates a new [`PartitionReceiver`] from a namespace and a credential.
     pub async fn new_from_credential(
         consumer_group: &str,
@@ -104,29 +80,6 @@ impl PartitionReceiver<BasicRetryPolicy> {
                 options,
             )
             .await
-    }
-
-    /// Creates a new [`PartitionReceiver`] from a namespace and a credential.
-    #[deprecated(since = "0.14.1", note = "Please use `new_from_credential` instead")]
-    pub async fn from_namespace_and_credential(
-        consumer_group: &str,
-        partition_id: &str,
-        event_position: EventPosition,
-        fully_qualified_namespace: impl Into<String>,
-        event_hub_name: impl Into<String>,
-        credential: impl Into<EventHubTokenCredential>,
-        options: PartitionReceiverOptions,
-    ) -> Result<Self, azure_core::Error> {
-        Self::new_from_credential(
-            consumer_group,
-            partition_id,
-            event_position,
-            fully_qualified_namespace,
-            event_hub_name,
-            credential,
-            options,
-        )
-        .await
     }
 
     /// Creates a new [`PartitionReceiver`] from an existing [`EventHubConnection`].
@@ -180,31 +133,6 @@ where
         .await
     }
 
-    /// Creates a new [`PartitionReceiver`] from a connection string.
-    #[deprecated(
-        since = "0.14.1",
-        note = "Please use `new_from_connection_string` instead"
-    )]
-    pub async fn from_connection_string(
-        self,
-        consumer_group: &str,
-        partition_id: &str,
-        event_position: EventPosition,
-        connection_string: impl Into<String>,
-        event_hub_name: impl Into<Option<String>>,
-        options: PartitionReceiverOptions,
-    ) -> Result<PartitionReceiver<RP>, azure_core::Error> {
-        self.new_from_connection_string(
-            consumer_group,
-            partition_id,
-            event_position,
-            connection_string,
-            event_hub_name,
-            options,
-        )
-        .await
-    }
-
     /// Creates a new [`PartitionReceiver`] from a namespace and a credential.
     #[allow(clippy::too_many_arguments)] // TODO: how to reduce the number of arguments?
     pub async fn new_from_credential(
@@ -230,31 +158,6 @@ where
             partition_id,
             event_position,
             connection,
-            options,
-        )
-        .await
-    }
-
-    /// Creates a new [`PartitionReceiver`] from a namespace and a credential.
-    #[allow(clippy::too_many_arguments)] // TODO: how to reduce the number of arguments?
-    #[deprecated(since = "0.14.1", note = "Please use `new_from_credential` instead")]
-    pub async fn from_namespace_and_credential(
-        self,
-        consumer_group: &str,
-        partition_id: &str,
-        event_position: EventPosition,
-        fully_qualified_namespace: impl Into<String>,
-        event_hub_name: impl Into<String>,
-        credential: impl Into<EventHubTokenCredential>,
-        options: PartitionReceiverOptions,
-    ) -> Result<PartitionReceiver<RP>, azure_core::Error> {
-        self.new_from_credential(
-            consumer_group,
-            partition_id,
-            event_position,
-            fully_qualified_namespace,
-            event_hub_name,
-            credential,
             options,
         )
         .await
