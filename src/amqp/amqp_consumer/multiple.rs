@@ -183,7 +183,6 @@ where
     type Output = Option<Result<ReceivedEventData, RecvError>>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        log::debug!("MultiAmqpConsumerRecv::poll()");
         let this = self.project();
         let pinned = Pin::new(this.state.get_mut().deref_mut());
         pinned.poll_recv(cx)
@@ -198,8 +197,6 @@ where
         mut self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<Result<ReceivedEventData, RecvError>>> {
-        log::debug!("MultipleAmqpConsumers::poll_recv()");
-
         if self.inner.is_empty() {
             // Only return None if all consumers are dead
             return Poll::Ready(None);
