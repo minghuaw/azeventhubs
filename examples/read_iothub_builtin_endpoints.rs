@@ -1,8 +1,5 @@
-use azeventhubs::{
-    consumer::{
-        EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions,
-    },
-    EventHubsRetryOptions, MaxRetries,
+use azeventhubs::consumer::{
+    EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions,
 };
 use futures_util::StreamExt;
 
@@ -13,15 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = dotenv::from_filename(".env");
 
     let connection_string = std::env::var("IOTHUB_BUILTIN_CONNECTION_STRING")?;
-    // let event_hub_name = std::env::var("EVENT_HUB_NAME")?;
-    let retry_options = EventHubsRetryOptions {
-        max_retries: MaxRetries::try_from(0).unwrap(),
-        ..Default::default()
-    };
-    let options = EventHubConsumerClientOptions {
-        retry_options,
-        ..Default::default()
-    };
+    let options = EventHubConsumerClientOptions::default();
 
     // Create a consumer client
     let mut consumer_client = EventHubConsumerClient::new_from_connection_string(
@@ -31,12 +20,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         options,
     )
     .await?;
+
     let options = ReadEventOptions::default();
-
-    log::info!("Sleeping for 2 minutes");
-    tokio::time::sleep(std::time::Duration::from_secs(2 * 60)).await;
-
-    log::info!("Reading from all partitions");
     let mut stream = consumer_client.read_events(false, options).await?;
 
     let mut counter = 0;
