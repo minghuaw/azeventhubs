@@ -4,12 +4,14 @@
 
 1. Updated `azure_core` to `0.18.0`
 2. Removed depcrecated methods
+3. Fixed a bug caused by that AMQP management link cannot resume on a new session.
+4. Creating producer and consnumer will also follow the retry policy
 
-## 0.17.2
+## ~~0.17.2~~
 
 1. Creating producer and consnumer will also follow the retry policy
 
-## 0.17.1
+## ~~0.17.1~~
 
 1. Fixed a bug caused by that AMQP management link cannot resume on a new session.
 

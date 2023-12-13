@@ -1,6 +1,6 @@
 use azeventhubs::{
     consumer::{
-        EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, ReadEventOptions,
+        EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions,
     },
     EventHubsRetryOptions, MaxRetries,
 };
@@ -37,11 +37,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::time::sleep(std::time::Duration::from_secs(2 * 60)).await;
 
     log::info!("Reading from all partitions");
-    // let mut stream = consumer_client.read_events(false, options).await?;
-    let starting_position = EventPosition::latest();
-    let mut stream = consumer_client
-        .read_events_from_partition("0", starting_position, options)
-        .await?;
+    let mut stream = consumer_client.read_events(false, options).await?;
 
     let mut counter = 0;
     while let Some(event) = stream.next().await {
