@@ -180,8 +180,6 @@ impl TransportClient for AmqpClient {
                 Err(elapsed) => elapsed.into(),
             };
 
-            log::debug!("Failed to get properties: {}", error);
-
             failed_attempt += 1;
             let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
             should_try_recover = error.should_try_recover();
@@ -439,7 +437,6 @@ impl RecoverableTransport for AmqpClient {
     type RecoverError = RecoverTransportClientError;
 
     async fn recover(&mut self) -> Result<(), Self::RecoverError> {
-        log::debug!("Recovering AmqpClient");
         self.connection_scope.recover().await?;
         match &mut self.management_link {
             Sharable::Owned(link) => {
