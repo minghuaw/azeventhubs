@@ -8,11 +8,8 @@ use std::{
 
 use async_trait::async_trait;
 use fe2o3_amqp::{
-    connection::ConnectionHandle,
-    link::receiver::CreditMode,
-    sasl_profile::SaslProfile,
-    session::SessionHandle,
-    Connection, Receiver, Sender, Session,
+    connection::ConnectionHandle, link::receiver::CreditMode, sasl_profile::SaslProfile,
+    session::SessionHandle, Connection, Receiver, Sender, Session,
 };
 use fe2o3_amqp_cbs::client::CbsClient;
 use fe2o3_amqp_management::MgmtClient;
@@ -52,7 +49,7 @@ use super::{
     cbs_token_provider::CbsTokenProvider,
     error::{
         AmqpConnectionScopeError, CbsAuthError, DisposeError, OpenConsumerError, OpenMgmtLinkError,
-        OpenProducerError
+        OpenProducerError,
     },
 };
 
@@ -570,7 +567,12 @@ impl AmqpConnectionScope {
     pub(crate) async fn close(&mut self) -> Result<(), DisposeError> {
         let mut is_disposed = self.is_disposed.load(Ordering::Relaxed);
         if is_disposed || self.connection.is_closed().await {
-            return Ok(());
+            // Get the connection error by calling `close` again
+            return self
+                .connection
+                .close()
+                .await
+                .map_err(DisposeError::ConnectionCloseError);
         }
 
         loop {
@@ -602,7 +604,12 @@ impl AmqpConnectionScope {
     pub(crate) async fn close_if_owned(&mut self) -> Result<(), DisposeError> {
         let mut is_disposed = self.is_disposed.load(Ordering::Relaxed);
         if is_disposed || self.connection.is_closed().await {
-            return Ok(());
+            // Get the connection error by calling `close` again
+            return self
+                .connection
+                .close_if_owned()
+                .await
+                .map_err(DisposeError::ConnectionCloseError);
         }
 
         if self.is_owned() {
@@ -711,7 +718,7 @@ impl RecoverableTransport for AmqpConnectionScope {
                     )
                     .await?
                 }
-                Sharable::None => {},
+                Sharable::None => {}
             }
         }
 
@@ -746,7 +753,7 @@ impl RecoverableTransport for AmqpConnectionScope {
                     let new_cbs_link_handle = AmqpCbsLink::spawn(cbs_token_provider, cbs_client);
                     self.cbs_link_handle = Sharable::Owned(new_cbs_link_handle);
                 }
-                _ => {},
+                _ => {}
             }
         }
 

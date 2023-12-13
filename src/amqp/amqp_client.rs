@@ -27,9 +27,8 @@ use super::{
     amqp_management_link::AmqpManagementLink,
     amqp_producer::AmqpProducer,
     error::{
-        AmqpClientError, DisposeError, OpenConsumerError,
-        OpenProducerError, RecoverAndCallError, RecoverConsumerError, RecoverProducerError,
-        RecoverTransportClientError,
+        AmqpClientError, DisposeError, OpenConsumerError, OpenProducerError, RecoverAndCallError,
+        RecoverConsumerError, RecoverProducerError, RecoverTransportClientError,
     },
 };
 
@@ -188,7 +187,12 @@ impl TransportClient for AmqpClient {
                     util::time::sleep(delay).await;
                     try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
                 }
-                None => return Err(error.into()),
+                // Stop retrying and close the client. The connection close error is often more
+                // useful
+                None => match self.connection_scope.close_if_owned().await {
+                    Ok(_) => return Err(error.into()),
+                    Err(dispose_err) => return Err(dispose_err.into()),
+                },
             }
         }
     }
@@ -231,7 +235,12 @@ impl TransportClient for AmqpClient {
                     util::time::sleep(delay).await;
                     try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
                 }
-                None => return Err(error.into()),
+                // Stop retrying and close the client. The connection close error is often more
+                // useful
+                None => match self.connection_scope.close_if_owned().await {
+                    Ok(_) => return Err(error.into()),
+                    Err(dispose_err) => return Err(dispose_err.into()),
+                },
             }
         }
     }
@@ -442,13 +451,13 @@ impl RecoverableTransport for AmqpClient {
             Sharable::Owned(link) => {
                 // self.connection_scope.recover_management_link(link).await?
                 *link = self.connection_scope.open_management_link().await?;
-            },
+            }
             Sharable::Shared(lock) => {
                 let mut link = lock.write().await;
                 // self.connection_scope.recover_management_link(&mut link).await?
                 *link = self.connection_scope.open_management_link().await?;
             }
-            Sharable::None => {},
+            Sharable::None => {}
         }
 
         Ok(())
