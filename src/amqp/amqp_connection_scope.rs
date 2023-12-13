@@ -270,8 +270,8 @@ impl AmqpConnectionScope {
     ) -> Result<AmqpManagementLink, OpenMgmtLinkError> {
         self.create_management_link()
             .await
-            .map(|(session_handle, client)| AmqpManagementLink {
-                session_handle,
+            .map(|(_session_handle, client)| AmqpManagementLink {
+                _session_handle,
                 client,
             })
     }

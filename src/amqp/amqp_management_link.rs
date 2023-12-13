@@ -6,7 +6,7 @@ use crate::util::sharable::Sharable;
 
 #[derive(Debug)]
 pub(crate) struct AmqpManagementLink {
-    pub(crate) session_handle: SessionHandle<()>,
+    pub(crate) _session_handle: SessionHandle<()>,
     pub(crate) client: MgmtClient,
 }
 
@@ -24,7 +24,7 @@ impl Sharable<AmqpManagementLink> {
                 let mut lock = lock.write().await;
                 lock.client.call(request).await
             },
-            Sharable::None => todo!(),
+            Sharable::None => unreachable!(),
         }
     }
 }
