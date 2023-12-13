@@ -213,6 +213,7 @@ impl EventHubConnection {
         )
         .await
     }
+}
 
 impl EventHubConnection {
     pub(crate) async fn get_properties<RP>(

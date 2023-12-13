@@ -335,6 +335,8 @@ where
         let retry_policy = RP::from(self.options.retry_options.clone());
         let partitions = self.connection.get_partition_ids(retry_policy).await?;
 
+        log::debug!("Found partitions: {:?}", partitions);
+
         // Create one consumer per partition
         let mut consumers = Vec::with_capacity(partitions.len());
         for partition in partitions {

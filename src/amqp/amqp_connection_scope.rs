@@ -52,7 +52,7 @@ use super::{
     cbs_token_provider::CbsTokenProvider,
     error::{
         AmqpConnectionScopeError, CbsAuthError, DisposeError, OpenConsumerError, OpenMgmtLinkError,
-        OpenProducerError, RecoverManagementLinkError,
+        OpenProducerError
     },
 };
 
@@ -290,23 +290,6 @@ impl AmqpConnectionScope {
         let mgmt_link = MgmtClient::attach(&mut session_handle, "").await?;
 
         Ok((session_handle, mgmt_link))
-    }
-
-    pub(crate) async fn recover_management_link(
-        &mut self,
-        management_link: &mut AmqpManagementLink,
-    ) -> Result<(), RecoverManagementLinkError> {
-        if management_link.session_handle.is_ended() {
-            let new_management_session = self.connection.begin_session().await?;
-            management_link
-                .client
-                .detach_then_resume_on_session(&new_management_session)
-                .await?;
-            let mut old_session =
-                std::mem::replace(&mut management_link.session_handle, new_management_session);
-            let _ = old_session.try_end();
-        }
-        Ok(())
     }
 
     pub(crate) async fn open_producer_link<RP>(
@@ -672,6 +655,7 @@ async fn recover_connection(
     id: &str,
     idle_timeout: StdDuration,
 ) -> Result<(), AmqpConnectionScopeError> {
+    log::debug!("Recovering connection");
     if let Err(err) = connection.handle.close().await {
         log::error!("Error closing connection during recovering: {:?}", err);
     }

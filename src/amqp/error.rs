@@ -9,7 +9,7 @@ use fe2o3_amqp::{
     },
     session::{self, BeginError},
 };
-use fe2o3_amqp_management::error::{DetachThenResumeError, Error as ManagementError};
+use fe2o3_amqp_management::error::{Error as ManagementError, AttachError};
 use fe2o3_amqp_types::messaging::{Modified, Rejected, Released};
 use timer_kit::error::Elapsed;
 
@@ -721,53 +721,6 @@ impl From<DetachThenResumeReceiverError> for RecoverConsumerError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RecoverManagementLinkError {
-    #[error(transparent)]
-    SessionBegin(#[from] BeginError),
-
-    #[error(transparent)]
-    LinkDetach(#[from] DetachError),
-
-    /// Error with resuming the sender
-    #[error(transparent)]
-    SenderResume(#[from] SenderResumeErrorKind),
-
-    /// Error with resuming the sender
-    #[error(transparent)]
-    ReceiverResume(#[from] ReceiverResumeErrorKind),
-
-    #[error("Connection scope is disposed")]
-    ConnectionScopeDisposed,
-}
-
-impl From<DetachThenResumeSenderError> for RecoverManagementLinkError {
-    fn from(err: DetachThenResumeSenderError) -> Self {
-        match err {
-            DetachThenResumeSenderError::Detach(err) => err.into(),
-            DetachThenResumeSenderError::Resume(err) => err.into(),
-        }
-    }
-}
-
-impl From<DetachThenResumeReceiverError> for RecoverManagementLinkError {
-    fn from(err: DetachThenResumeReceiverError) -> Self {
-        match err {
-            DetachThenResumeReceiverError::Detach(err) => err.into(),
-            DetachThenResumeReceiverError::Resume(err) => err.into(),
-        }
-    }
-}
-
-impl From<DetachThenResumeError> for RecoverManagementLinkError {
-    fn from(err: DetachThenResumeError) -> Self {
-        match err {
-            DetachThenResumeError::Sender(err) => err.into(),
-            DetachThenResumeError::Receiver(err) => err.into(),
-        }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
 pub enum RecoverTransportClientError {
     #[error(transparent)]
     Parse(#[from] url::ParseError),
@@ -814,16 +767,15 @@ impl From<AmqpConnectionScopeError> for RecoverTransportClientError {
     }
 }
 
-impl From<RecoverManagementLinkError> for RecoverTransportClientError {
-    fn from(value: RecoverManagementLinkError) -> Self {
+impl From<OpenMgmtLinkError> for RecoverTransportClientError {
+    fn from(value: OpenMgmtLinkError) -> Self {
         match value {
-            RecoverManagementLinkError::SessionBegin(err) => err.into(),
-            RecoverManagementLinkError::LinkDetach(err) => err.into(),
-            RecoverManagementLinkError::SenderResume(err) => err.into(),
-            RecoverManagementLinkError::ReceiverResume(err) => err.into(),
-            RecoverManagementLinkError::ConnectionScopeDisposed => {
-                RecoverTransportClientError::ConnectionScopeDisposed
-            }
+            OpenMgmtLinkError::ConnectionScopeDisposed => Self::ConnectionScopeDisposed,
+            OpenMgmtLinkError::Session(err) => err.into(),
+            OpenMgmtLinkError::Link(err) => match err {
+                AttachError::Sender(err) => SenderResumeErrorKind::AttachError(err).into(),
+                AttachError::Receiver(err) => ReceiverResumeErrorKind::AttachError(err).into(),
+            },
         }
     }
 }
