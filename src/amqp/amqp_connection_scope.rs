@@ -422,7 +422,7 @@ impl AmqpConnectionScope {
         &mut self,
         consumer_group: &str,
         partition_id: &str,
-        event_position: EventPosition,
+        event_position: &EventPosition,
         prefetch_count: u32,
         owner_level: Option<i64>,
         track_last_enqueued_event_properties: bool,
@@ -470,7 +470,7 @@ impl AmqpConnectionScope {
     async fn create_receiving_session_and_link(
         &mut self,
         endpoint: &Url,
-        event_position: EventPosition,
+        event_position: &EventPosition,
         prefetch_count: u32,
         // prefetch_size_in_bytes: Option<usize>, // TODO: what does this do in the c# sdk?
         owner_level: Option<i64>,

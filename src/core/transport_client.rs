@@ -18,6 +18,7 @@ pub trait TransportClient: Sized {
     where
         RP: EventHubsRetryPolicy + Send;
 
+    type RequestResponseError: std::error::Error;
     type OpenProducerError: std::error::Error;
     type RecoverProducerError: std::error::Error;
     type OpenConsumerError: std::error::Error;
@@ -28,20 +29,14 @@ pub trait TransportClient: Sized {
 
     fn service_endpoint(&self) -> &Url;
 
-    async fn get_properties<RP>(
+    async fn get_properties(
         &mut self,
-        retry_policy: RP,
-    ) -> Result<EventHubProperties, azure_core::Error>
-    where
-        RP: EventHubsRetryPolicy + Send;
+    ) -> Result<EventHubProperties, Self::RequestResponseError>;
 
-    async fn get_partition_properties<RP>(
+    async fn get_partition_properties(
         &mut self,
         partition_id: &str,
-        retry_policy: RP,
-    ) -> Result<PartitionProperties, azure_core::Error>
-    where
-        RP: EventHubsRetryPolicy + Send;
+    ) -> Result<PartitionProperties, Self::RequestResponseError>;
 
     async fn create_producer<RP>(
         &mut self,
@@ -67,7 +62,7 @@ pub trait TransportClient: Sized {
         consumer_group: &str,
         partition_id: &str,
         consumer_identifier: Option<String>,
-        event_position: EventPosition,
+        event_position: &EventPosition,
         retry_policy: RP,
         track_last_enqueued_event_properties: bool,
         owner_level: Option<i64>,

@@ -10,12 +10,12 @@ use crate::{
     amqp::amqp_management::event_hub_properties::EventHubPropertiesRequest,
     authorization::{event_hub_claim, event_hub_token_credential::EventHubTokenCredential},
     consumer::EventPosition,
-    core::{RecoverableError, RecoverableTransport, TransportClient, TransportProducerFeatures},
+    core::{RecoverableTransport, TransportClient, TransportProducerFeatures},
     event_hubs_connection_option::EventHubConnectionOptions,
     event_hubs_properties::EventHubProperties,
     event_hubs_retry_policy::EventHubsRetryPolicy,
     producer::PartitionPublishingOptions,
-    util::{self, sharable::Sharable},
+    util::sharable::Sharable,
     PartitionProperties,
 };
 
@@ -27,8 +27,8 @@ use super::{
     amqp_management_link::AmqpManagementLink,
     amqp_producer::AmqpProducer,
     error::{
-        AmqpClientError, DisposeError, OpenConsumerError, OpenProducerError, RecoverAndCallError,
-        RecoverConsumerError, RecoverProducerError, RecoverTransportClientError,
+        AmqpClientError, DisposeError, OpenConsumerError, OpenProducerError,
+        RecoverConsumerError, RecoverProducerError, RecoverTransportClientError, RequestResponseError,
     },
 };
 
@@ -52,42 +52,6 @@ impl AmqpClient {
             connection_scope: self.connection_scope.clone_as_shared(),
             management_link: shared_mgmt_link,
         }
-    }
-
-    async fn recover_and_get_properties<'a>(
-        &mut self,
-        should_try_recover: bool,
-        token_value: &'a str,
-    ) -> Result<EventHubProperties, RecoverAndCallError> {
-        if should_try_recover {
-            self.recover().await?;
-        }
-
-        let request =
-            EventHubPropertiesRequest::new(&*self.connection_scope.event_hub_name, token_value);
-
-        let res = self.management_link.call(request).await?;
-        Ok(res)
-    }
-
-    async fn recover_and_get_partition_properties<'a>(
-        &mut self,
-        should_try_recover: bool,
-        partition_id: &'a str,
-        token_value: &'a str,
-    ) -> Result<PartitionProperties, RecoverAndCallError> {
-        if should_try_recover {
-            self.recover().await?;
-        }
-
-        let request = PartitionPropertiesRequest::new(
-            &*self.connection_scope.event_hub_name,
-            partition_id,
-            token_value,
-        );
-
-        let res = self.management_link.call(request).await?;
-        Ok(res)
     }
 }
 
@@ -138,6 +102,7 @@ impl TransportClient for AmqpClient {
     type Producer<RP> = AmqpProducer<RP> where RP: EventHubsRetryPolicy + Send;
     type Consumer<RP> = AmqpConsumer<RP> where RP: EventHubsRetryPolicy + Send;
 
+    type RequestResponseError = RequestResponseError;
     type OpenProducerError = OpenProducerError;
     type RecoverProducerError = RecoverProducerError;
     type OpenConsumerError = OpenConsumerError;
@@ -152,97 +117,42 @@ impl TransportClient for AmqpClient {
         &self.connection_scope.service_endpoint
     }
 
-    async fn get_properties<RP>(
+    async fn get_properties(
         &mut self,
-        retry_policy: RP,
-    ) -> Result<EventHubProperties, azure_core::Error>
-    where
-        RP: EventHubsRetryPolicy + Send,
-    {
-        // TODO: use cancellation token?
-        let mut try_timeout = retry_policy.calculate_try_timeout(0);
-        let mut failed_attempt = 0;
-        let mut should_try_recover = false;
-
+    ) -> Result<EventHubProperties, Self::RequestResponseError> {
         let access_token = self
             .connection_scope
             .credential
             .get_token_using_default_resource()
             .await?;
         let token_value = access_token.token.secret();
-        loop {
-            // The request internally uses Cow, so cloning is cheap.
-            let fut = self.recover_and_get_properties(should_try_recover, token_value);
-            let error = match util::time::timeout(try_timeout, fut).await {
-                Ok(Ok(response)) => return Ok(response),
-                Ok(Err(err)) => err,
-                Err(elapsed) => elapsed.into(),
-            };
 
-            failed_attempt += 1;
-            let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
-            should_try_recover = error.should_try_recover();
-            match delay {
-                Some(delay) => {
-                    util::time::sleep(delay).await;
-                    try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
-                }
-                // Stop retrying and close the client. The connection close error is often more
-                // useful
-                None => match self.connection_scope.close_if_owned().await {
-                    Ok(_) => return Err(error.into()),
-                    Err(dispose_err) => return Err(dispose_err.into()),
-                },
-            }
-        }
+        let request =
+            EventHubPropertiesRequest::new(&*self.connection_scope.event_hub_name, token_value);
+
+        self.management_link.call(request).await
+            .map_err(Into::into)
     }
 
-    async fn get_partition_properties<RP>(
+    async fn get_partition_properties(
         &mut self,
         partition_id: &str,
-        retry_policy: RP,
-    ) -> Result<PartitionProperties, azure_core::Error>
-    where
-        RP: EventHubsRetryPolicy + Send,
-    {
-        let mut try_timeout = retry_policy.calculate_try_timeout(0);
-        let mut failed_attempt = 0;
-        let mut should_try_recover = false;
-
+    ) -> Result<PartitionProperties, Self::RequestResponseError> {
         let access_token = self
             .connection_scope
             .credential
             .get_token_using_default_resource()
             .await?;
         let token_value = access_token.token.secret();
-        loop {
-            let fut = self.recover_and_get_partition_properties(
-                should_try_recover,
-                partition_id,
-                token_value,
-            );
-            let error = match util::time::timeout(try_timeout, fut).await {
-                Ok(Ok(response)) => return Ok(response),
-                Ok(Err(err)) => err,
-                Err(elapsed) => elapsed.into(),
-            };
+        
+        let request = PartitionPropertiesRequest::new(
+            &*self.connection_scope.event_hub_name,
+            partition_id,
+            token_value,
+        );
 
-            failed_attempt += 1;
-            let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
-            should_try_recover = error.should_try_recover();
-            match delay {
-                Some(delay) => {
-                    util::time::sleep(delay).await;
-                    try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
-                }
-                // Stop retrying and close the client. The connection close error is often more
-                // useful
-                None => match self.connection_scope.close_if_owned().await {
-                    Ok(_) => return Err(error.into()),
-                    Err(dispose_err) => return Err(dispose_err.into()),
-                },
-            }
-        }
+        self.management_link.call(request).await
+            .map_err(Into::into)
     }
 
     async fn create_producer<RP>(
@@ -256,17 +166,13 @@ impl TransportClient for AmqpClient {
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let operation_timeout = retry_policy.calculate_try_timeout(0);
-        let fut = self.connection_scope.open_producer_link(
+        self.connection_scope.open_producer_link(
             partition_id,
             requested_features,
             partition_options,
             producer_identifier,
             retry_policy,
-        );
-        let producer = util::time::timeout(operation_timeout, fut).await??;
-
-        Ok(producer)
+        ).await
     }
 
     async fn recover_producer<RP>(
@@ -310,7 +216,7 @@ impl TransportClient for AmqpClient {
         consumer_group: &str,
         partition_id: &str,
         consumer_identifier: Option<String>,
-        event_position: EventPosition,
+        event_position: &EventPosition,
         retry_policy: RP,
         track_last_enqueued_event_properties: bool,
         owner_level: Option<i64>,
@@ -319,8 +225,7 @@ impl TransportClient for AmqpClient {
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let try_timeout = retry_policy.calculate_try_timeout(0);
-        let fut = self.connection_scope.open_consumer_link(
+        self.connection_scope.open_consumer_link(
             consumer_group,
             partition_id,
             event_position,
@@ -329,10 +234,7 @@ impl TransportClient for AmqpClient {
             track_last_enqueued_event_properties,
             consumer_identifier,
             retry_policy,
-        );
-        let consumer = util::time::timeout(try_timeout, fut).await??;
-
-        Ok(consumer)
+        ).await
     }
 
     async fn recover_consumer<RP>(
@@ -357,7 +259,7 @@ impl TransportClient for AmqpClient {
         if let Some(Ok(event_position)) = consumer
             .current_event_position
             .clone()
-            .map(amqp_filter::build_filter_expression)
+            .map(|p| amqp_filter::build_filter_expression(&p))
         {
             let consumer_filter = Described::<Value>::from(ConsumerFilter(event_position));
             let source = consumer.receiver.source_mut().get_or_insert(

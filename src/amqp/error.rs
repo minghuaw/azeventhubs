@@ -306,6 +306,23 @@ impl From<OpenProducerError> for azure_core::Error {
     }
 }
 
+impl RecoverableError for OpenProducerError {
+    fn should_try_recover(&self) -> bool {
+        match self {
+            OpenProducerError::ParseEndpoint(_) => false,
+            OpenProducerError::ConnectionScopeDisposed => false,
+            OpenProducerError::CbsAuth(_) => true,
+            OpenProducerError::Session(_) => true,
+            OpenProducerError::SenderLink(_) => true,
+            OpenProducerError::Elapsed(_) => true,
+        }
+    }
+
+    fn is_scope_disposed(&self) -> bool {
+        matches!(self, OpenProducerError::ConnectionScopeDisposed)
+    }
+}
+
 /// Error opening a consumer
 #[derive(Debug, thiserror::Error)]
 pub enum OpenConsumerError {
@@ -344,6 +361,24 @@ impl From<OpenConsumerError> for azure_core::Error {
             OpenConsumerError::ConsumerFilter(err) => err.into(),
             OpenConsumerError::Elapsed(err) => err.into_azure_core_error(),
         }
+    }
+}
+
+impl RecoverableError for OpenConsumerError {
+    fn should_try_recover(&self) -> bool {
+        match self {
+            OpenConsumerError::ParseEndpoint(_) => false,
+            OpenConsumerError::ConnectionScopeDisposed => false,
+            OpenConsumerError::CbsAuth(_) => true,
+            OpenConsumerError::Session(_) => true,
+            OpenConsumerError::ReceiverLink(_) => true,
+            OpenConsumerError::ConsumerFilter(_) => false,
+            OpenConsumerError::Elapsed(_) => true,
+        }
+    }
+
+    fn is_scope_disposed(&self) -> bool {
+        matches!(self, OpenConsumerError::ConnectionScopeDisposed)
     }
 }
 
@@ -836,9 +871,9 @@ impl RecoverableError for ManagementError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RecoverAndCallError {
+pub enum RequestResponseError {
     #[error(transparent)]
-    RecoverClient(#[from] RecoverTransportClientError),
+    Token(#[from] azure_core::Error),
 
     #[error(transparent)]
     Management(#[from] ManagementError),
@@ -847,31 +882,23 @@ pub enum RecoverAndCallError {
     Elapsed(#[from] Elapsed),
 }
 
-impl From<RecoverAndCallError> for azure_core::Error {
-    fn from(err: RecoverAndCallError) -> Self {
+impl From<RequestResponseError> for azure_core::Error {
+    fn from(err: RequestResponseError) -> Self {
         match err {
-            RecoverAndCallError::RecoverClient(err) => err.into(),
-            RecoverAndCallError::Management(err) => err.into_azure_core_error(),
-            RecoverAndCallError::Elapsed(err) => err.into_azure_core_error(),
+            RequestResponseError::Token(err) => err,
+            RequestResponseError::Management(err) => err.into_azure_core_error(),
+            RequestResponseError::Elapsed(err) => err.into_azure_core_error(),
         }
     }
 }
 
-impl RecoverableError for RecoverAndCallError {
+impl RecoverableError for RequestResponseError {
     fn should_try_recover(&self) -> bool {
-        match self {
-            RecoverAndCallError::RecoverClient(err) => err.should_try_recover(),
-            RecoverAndCallError::Management(err) => err.should_try_recover(),
-            RecoverAndCallError::Elapsed(_) => true,
-        }
+        true
     }
 
     fn is_scope_disposed(&self) -> bool {
-        match self {
-            RecoverAndCallError::RecoverClient(err) => err.is_scope_disposed(),
-            RecoverAndCallError::Management(_) => false,
-            RecoverAndCallError::Elapsed(_) => false,
-        }
+        false
     }
 }
 

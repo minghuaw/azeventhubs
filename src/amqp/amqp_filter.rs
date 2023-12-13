@@ -51,7 +51,7 @@ impl From<ConsumerFilter> for Option<Described<Value>> {
     }
 }
 
-pub fn build_filter_expression(event_position: EventPosition) -> Result<String, OffsetIsEmpty> {
+pub fn build_filter_expression(event_position: &EventPosition) -> Result<String, OffsetIsEmpty> {
     match event_position {
         EventPosition::Offset {
             offset,
@@ -63,7 +63,7 @@ pub fn build_filter_expression(event_position: EventPosition) -> Result<String, 
             Ok(format!(
                 "{} {} {}",
                 OFFSET_NAME,
-                if is_inclusive { ">=" } else { ">" },
+                if *is_inclusive { ">=" } else { ">" },
                 offset
             ))
         }
@@ -73,7 +73,7 @@ pub fn build_filter_expression(event_position: EventPosition) -> Result<String, 
         } => Ok(format!(
             "{} {} {}",
             SEQUENCE_NUMBER_NAME,
-            if is_inclusive { ">=" } else { ">" },
+            if *is_inclusive { ">=" } else { ">" },
             sequence_number
         )),
         EventPosition::EnqueuedTime(enqueued_time) => {

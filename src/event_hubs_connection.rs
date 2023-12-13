@@ -17,14 +17,14 @@ use crate::{
         AzureSasCredential,
     },
     consumer::EventPosition,
-    core::{RecoverableTransport, TransportClient, TransportProducerFeatures},
+    core::{RecoverableTransport, TransportClient, TransportProducerFeatures, RecoverableError},
     event_hubs_connection_option::EventHubConnectionOptions,
     event_hubs_connection_string_properties::EventHubsConnectionStringProperties,
     event_hubs_properties::EventHubProperties,
     event_hubs_retry_policy::EventHubsRetryPolicy,
     event_hubs_transport_type::EventHubsTransportType,
     producer::PartitionPublishingOptions,
-    PartitionProperties,
+    PartitionProperties, util,
 };
 
 /// Error with the `EventHubConnection`.
@@ -223,7 +223,44 @@ impl EventHubConnection {
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        self.inner.get_properties(retry_policy).await
+        // // We don't need to explicitly check if the connection is closed here because
+        // // `self.inner.get_properties` will do that for us.
+        // self.inner.get_properties(retry_policy).await
+
+        let mut try_timeout = retry_policy.calculate_try_timeout(0);
+        let mut failed_attempt = 0;
+        let mut should_try_recover = false;
+
+        loop {
+            // The underlying AMQP client may get closed if idle for too long.  If that happens, we
+            // need to recreate it.
+            if should_try_recover {
+                self.inner.recover().await?;
+            }
+
+            let fut = self.inner.get_properties();
+            let error = match util::time::timeout(try_timeout, fut).await {
+                Ok(Ok(response)) => return Ok(response),
+                Ok(Err(err)) => err,
+                Err(elapsed) => elapsed.into(),
+            };
+
+            failed_attempt += 1;
+            let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
+            should_try_recover = error.should_try_recover();
+            match delay {
+                Some(delay) => {
+                    util::time::sleep(delay).await;
+                    try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
+                }
+                // Stop retrying and close the client. The connection close error is often more
+                // useful
+                None => match self.inner.close_if_owned().await {
+                    Ok(_) => return Err(error.into()),
+                    Err(dispose_err) => return Err(dispose_err.into()),
+                },
+            }
+        }
     }
 
     pub(crate) async fn get_partition_ids<RP>(
@@ -233,6 +270,8 @@ impl EventHubConnection {
     where
         RP: EventHubsRetryPolicy + Send,
     {
+        // We don't need to explicitly check if the connection is closed here because
+        // `self.inner.get_properties` will do that for us.
         let properties = self.get_properties(retry_policy).await?;
         Ok(properties.partition_ids)
     }
@@ -245,9 +284,40 @@ impl EventHubConnection {
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        self.inner
-            .get_partition_properties(partition_id, retry_policy)
-            .await
+        let mut try_timeout = retry_policy.calculate_try_timeout(0);
+        let mut failed_attempt = 0;
+        let mut should_try_recover = false;
+
+        loop {
+            // The underlying AMQP client may get closed if idle for too long.  If that happens, we
+            // need to recreate it.
+            if should_try_recover {
+                self.inner.recover().await?;
+            }
+
+            let fut = self.inner.get_partition_properties(partition_id);
+            let error = match util::time::timeout(try_timeout, fut).await {
+                Ok(Ok(response)) => return Ok(response),
+                Ok(Err(err)) => err,
+                Err(elapsed) => elapsed.into(),
+            };
+
+            failed_attempt += 1;
+            let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
+            should_try_recover = error.should_try_recover();
+            match delay {
+                Some(delay) => {
+                    util::time::sleep(delay).await;
+                    try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
+                }
+                // Stop retrying and close the client. The connection close error is often more
+                // useful
+                None => match self.inner.close_if_owned().await {
+                    Ok(_) => return Err(error.into()),
+                    Err(dispose_err) => return Err(dispose_err.into()),
+                },
+            }
+        }
     }
 
     pub(crate) async fn create_transport_producer<RP>(
@@ -261,16 +331,49 @@ impl EventHubConnection {
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        self.inner
-            .create_producer(
-                partition_id,
-                producer_identifier,
-                requested_features,
-                partition_options,
-                retry_policy,
-            )
-            .await
-            .map_err(Into::into)
+        let mut try_timeout = retry_policy.calculate_try_timeout(0);
+        let mut failed_attempt = 0;
+        let mut should_try_recover = false;
+
+        loop {
+            // The underlying AMQP client may get closed if idle for too long.  If that happens, we
+            // need to recreate it.
+            if should_try_recover {
+                self.inner.recover().await?;
+            }
+
+            // TODO: can we reduce clone() calls?
+            let fut = self.inner
+                .create_producer(
+                    partition_id.clone(),
+                    producer_identifier.clone(),
+                    requested_features,
+                    partition_options.clone(),
+                    retry_policy.clone(),
+                );
+            let error = match util::time::timeout(try_timeout, fut).await {
+                Ok(Ok(response)) => return Ok(response),
+                Ok(Err(err)) => err,
+                Err(elapsed) => elapsed.into(),
+            };
+
+
+            failed_attempt += 1;
+            let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
+            should_try_recover = error.should_try_recover();
+            match delay {
+                Some(delay) => {
+                    util::time::sleep(delay).await;
+                    try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
+                }
+                // Stop retrying and close the client. The connection close error is often more
+                // useful
+                None => match self.inner.close_if_owned().await {
+                    Ok(_) => return Err(error.into()),
+                    Err(dispose_err) => return Err(dispose_err.into()),
+                },
+            }
+        }
     }
 
     #[allow(clippy::too_many_arguments)] // TODO: how to reduce the number of arguments?
@@ -288,19 +391,51 @@ impl EventHubConnection {
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        self.inner
-            .create_consumer(
-                consumer_group,
-                partition_id,
-                consumer_identifier,
-                event_position,
-                retry_policy,
-                track_last_enqueued_event_properties,
-                owner_level,
-                prefetch_count,
-            )
-            .await
-            .map_err(Into::into)
+        let mut try_timeout = retry_policy.calculate_try_timeout(0);
+        let mut failed_attempt = 0;
+        let mut should_try_recover = false;
+
+        loop {
+            // The underlying AMQP client may get closed if idle for too long.  If that happens, we
+            // need to recreate it.
+            if should_try_recover {
+                self.inner.recover().await?;
+            }
+
+            let fut = self
+                .inner
+                .create_consumer(
+                    consumer_group,
+                    partition_id,
+                    consumer_identifier.clone(),
+                    &event_position,
+                    retry_policy.clone(),
+                    track_last_enqueued_event_properties,
+                    owner_level,
+                    prefetch_count,
+                );
+            let error = match util::time::timeout(try_timeout, fut).await {
+                Ok(Ok(response)) => return Ok(response),
+                Ok(Err(err)) => err,
+                Err(elapsed) => elapsed.into(),
+            };
+
+            failed_attempt += 1;
+            let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
+            should_try_recover = error.should_try_recover();
+            match delay {
+                Some(delay) => {
+                    util::time::sleep(delay).await;
+                    try_timeout = retry_policy.calculate_try_timeout(failed_attempt);
+                }
+                // Stop retrying and close the client. The connection close error is often more
+                // useful
+                None => match self.inner.close_if_owned().await {
+                    Ok(_) => return Err(error.into()),
+                    Err(dispose_err) => return Err(dispose_err.into()),
+                },
+            }
+        }
     }
 
     /// Closes the inner client regardless of whether it is owned or shared.
