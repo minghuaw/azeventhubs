@@ -21,6 +21,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
+    tokio::time::sleep(std::time::Duration::from_secs(2 * 60)).await;
+
     let options = ReadEventOptions::default();
     let mut stream = consumer_client.read_events(false, options).await?;
 
