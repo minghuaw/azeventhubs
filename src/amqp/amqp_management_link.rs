@@ -50,15 +50,21 @@ impl AmqpManagementLink {
 
     pub(crate) async fn recover(&mut self, scope: &mut AmqpConnectionScope) -> Result<(), OpenMgmtLinkError> {
         log::debug!("Recovering management link");
+        if let State::Connected { session, .. } = &self.state {
+            if !session.is_ended() {
+                log::debug!("Management session is not ended, skipping recovery");
+                return Ok(());
+            }
+        }
 
         // Close the old session and client
         let old_state = std::mem::replace(&mut self.state, State::Recovering);
         if let State::Connected { mut session, client } = old_state {
             if let Err(err) = client.close().await {
-                log::error!("Found error closing management client during recovery: {:?}", err);
+                log::error!("Found error closing old management client during recovery: {:?}", err);
             }
             if let Err(err) = session.end().await {
-                log::error!("Found error closing management session during recovery: {:?}", err);
+                log::error!("Found error closing old management session during recovery: {:?}", err);
             }
         }
 
@@ -68,6 +74,8 @@ impl AmqpManagementLink {
             client: new_client,
         };
         let _ = std::mem::replace(&mut self.state, new_state);
+
+        log::debug!("Management link recovered");
 
         Ok(())
     }

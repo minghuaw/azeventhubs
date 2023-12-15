@@ -362,6 +362,8 @@ impl RecoverableTransport for AmqpClient {
             Sharable::None => {}
         }
 
+        log::debug!("Client recovered");
+
         Ok(())
     }
 }

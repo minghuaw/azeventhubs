@@ -1,5 +1,9 @@
 # Change log
 
+## 0.18.1
+
+1. Closes the old session and management link when recovering from a retryable error.
+
 ## 0.18.0
 
 1. Updated `azure_core` to `0.18.0`
