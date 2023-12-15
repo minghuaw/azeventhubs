@@ -270,13 +270,10 @@ impl AmqpConnectionScope {
     ) -> Result<AmqpManagementLink, OpenMgmtLinkError> {
         self.create_management_link()
             .await
-            .map(|(_session_handle, client)| AmqpManagementLink {
-                _session_handle,
-                client,
-            })
+            .map(|(session, client)| AmqpManagementLink::new(session, client))
     }
 
-    async fn create_management_link(
+    pub(crate) async fn create_management_link(
         &mut self,
     ) -> Result<(SessionHandle<()>, MgmtClient), OpenMgmtLinkError> {
         if self.is_disposed.load(Ordering::Relaxed) {

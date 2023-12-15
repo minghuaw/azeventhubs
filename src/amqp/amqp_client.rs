@@ -348,19 +348,21 @@ impl RecoverableTransport for AmqpClient {
     type RecoverError = RecoverTransportClientError;
 
     async fn recover(&mut self) -> Result<(), Self::RecoverError> {
+        log::debug!("Recovering client");
+
         self.connection_scope.recover().await?;
         match &mut self.management_link {
             Sharable::Owned(link) => {
-                // self.connection_scope.recover_management_link(link).await?
-                *link = self.connection_scope.open_management_link().await?;
+                link.recover(&mut self.connection_scope).await?;
             }
             Sharable::Shared(lock) => {
                 let mut link = lock.write().await;
-                // self.connection_scope.recover_management_link(&mut link).await?
-                *link = self.connection_scope.open_management_link().await?;
+                link.recover(&mut self.connection_scope).await?;
             }
             Sharable::None => {}
         }
+
+        log::debug!("Client recovered");
 
         Ok(())
     }
