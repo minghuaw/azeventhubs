@@ -21,7 +21,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    tokio::time::sleep(std::time::Duration::from_secs(2 * 60)).await;
+    // // Idling for more than 1 minute will cause the connection to be closed. 
+    // // This tests whether the client can recover from a closed connection.
+    // tokio::time::sleep(std::time::Duration::from_secs(2 * 60)).await;
 
     let options = ReadEventOptions::default();
     let start_position = azeventhubs::consumer::EventPosition::latest();
