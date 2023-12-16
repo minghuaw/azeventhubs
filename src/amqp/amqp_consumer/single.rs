@@ -202,6 +202,8 @@ where
                 Err(err) => err,
             };
 
+        log::debug!("Failed to receive batch: {:?}", err);
+
         if err.is_scope_disposed() {
             return Err(err);
         }
@@ -254,6 +256,8 @@ where
                 }
             }
         };
+
+        log::debug!("Failed to receive event: {:?}", err);
 
         if err.is_scope_disposed() {
             return Err(err);

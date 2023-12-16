@@ -1,5 +1,12 @@
 # Change log
 
+## 0.18.2
+
+1. Added more debug logs
+2. Perform management client recovery anyway even if the management link session is still active
+   (currently there is no guarantee that the session will be closed when the link is closed, and
+    there is no cheap way to check if the management link is still active)
+
 ## 0.18.1
 
 1. Closes the old session and management link when recovering from a retryable error.

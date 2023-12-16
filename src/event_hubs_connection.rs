@@ -245,6 +245,8 @@ impl EventHubConnection {
                 Err(elapsed) => elapsed.into(),
             };
 
+            log::debug!("get_properties failed: {:?}", error);
+
             failed_attempt += 1;
             let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
             should_try_recover = error.should_try_recover();
@@ -302,6 +304,8 @@ impl EventHubConnection {
                 Err(elapsed) => elapsed.into(),
             };
 
+            log::debug!("get_partition_properties failed: {:?}", error);
+
             failed_attempt += 1;
             let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
             should_try_recover = error.should_try_recover();
@@ -357,6 +361,7 @@ impl EventHubConnection {
                 Err(elapsed) => elapsed.into(),
             };
 
+            log::debug!("create producer failed: {:?}", error);
 
             failed_attempt += 1;
             let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
@@ -419,6 +424,8 @@ impl EventHubConnection {
                 Ok(Err(err)) => err,
                 Err(elapsed) => elapsed.into(),
             };
+
+            log::debug!("create consumer failed: {:?}", error);
 
             failed_attempt += 1;
             let delay = retry_policy.calculate_retry_delay(&error, failed_attempt);
