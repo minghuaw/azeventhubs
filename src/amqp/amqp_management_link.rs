@@ -52,8 +52,7 @@ impl AmqpManagementLink {
         log::debug!("Recovering management link");
         if let State::Connected { session, .. } = &self.state {
             if !session.is_ended() {
-                log::debug!("Management session is not ended, skipping recovery");
-                return Ok(());
+                log::debug!("Management link session is still open, performing recovery anyway");
             }
         }
 
