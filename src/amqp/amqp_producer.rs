@@ -175,6 +175,8 @@ where
                 Err(elapsed) => elapsed.into(),
             };
 
+            log::debug!("Failed to send batch: {:?}", err);
+
             // Scope is disposed, so we can't recover or retry
             if err.is_scope_disposed() {
                 return Err(err);

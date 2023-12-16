@@ -297,6 +297,8 @@ where
             },
         };
 
+        log::debug!("Failed to receive event: {:?}", err);
+
         if err.is_scope_disposed() {
             return Some(Err(err));
         }
