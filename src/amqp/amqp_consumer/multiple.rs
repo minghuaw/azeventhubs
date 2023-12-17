@@ -233,6 +233,8 @@ async fn recover_consumers<RP>(
 where
     RP: EventHubsRetryPolicy + Send,
 {
+    log::debug!("Recovering consumers");
+
     // Client should be already recovered
     let mut result = Ok(());
 

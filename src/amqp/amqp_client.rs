@@ -182,6 +182,8 @@ impl TransportClient for AmqpClient {
     where
         RP: EventHubsRetryPolicy + Send,
     {
+        log::debug!("Recovering producer");
+
         let endpoint = producer.endpoint.to_string();
         let resource = endpoint.clone();
         let required_claims = vec![event_hub_claim::SEND.to_string()];
@@ -207,6 +209,8 @@ impl TransportClient for AmqpClient {
                 .detach_then_resume_on_session(&producer.session_handle)
                 .await?
         };
+
+        log::debug!("Producer recovered");
 
         Ok(())
     }
@@ -244,6 +248,8 @@ impl TransportClient for AmqpClient {
     where
         RP: EventHubsRetryPolicy + Send,
     {
+        log::debug!("Recovering consumer");
+
         let endpoint = consumer.endpoint.to_string();
         let resource = endpoint.clone();
         let required_claims = vec![event_hub_claim::LISTEN.to_string()];
@@ -322,6 +328,8 @@ impl TransportClient for AmqpClient {
                 }
             }
         }
+
+        log::debug!("Consumer recovered");
 
         Ok(())
     }
