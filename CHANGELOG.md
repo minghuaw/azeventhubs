@@ -1,5 +1,10 @@
 # Change log
 
+## 0.18.3
+
+1. A closed link will be recovered by creating a completely new link instead of trying to resume the old link.
+2. Added more debug logs
+
 ## 0.18.2
 
 1. Added more debug logs
