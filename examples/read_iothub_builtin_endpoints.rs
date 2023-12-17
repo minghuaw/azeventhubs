@@ -14,7 +14,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a consumer client
     let mut consumer_client = EventHubConsumerClient::new_from_connection_string(
-        EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+        // EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+        "$default",
         connection_string.clone(),
         None,
         options,

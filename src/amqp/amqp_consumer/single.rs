@@ -1,7 +1,4 @@
-use std::{
-    collections::VecDeque,
-    time::Duration as StdDuration,
-};
+use std::{collections::VecDeque, time::Duration as StdDuration};
 
 use fe2o3_amqp::{link::RecvError, session::SessionHandle, Receiver};
 use futures_util::FutureExt;
@@ -23,7 +20,7 @@ use crate::amqp::{
     error::{DisposeConsumerError, RecoverAndReceiveError},
 };
 
-use super::{EventStream, EventStreamState, Consumer};
+use super::{Consumer, ConsumerOptions, EventStream, EventStreamState};
 
 #[derive(Debug)]
 pub struct AmqpConsumer<RP> {
@@ -38,6 +35,8 @@ pub struct AmqpConsumer<RP> {
     pub(crate) retry_policy: RP,
     pub(crate) prefetch_count: u32,
     pub(crate) cbs_command_sender: mpsc::Sender<Command>,
+
+    pub(crate) initial_options: ConsumerOptions,
 }
 
 impl<RP> AmqpConsumer<RP> {
@@ -127,6 +126,7 @@ async fn recover_and_recv_batch<RP>(
     client: &mut AmqpClient,
     consumer: &mut AmqpConsumer<RP>,
     should_try_recover: bool,
+    should_resume_link: bool,
     buffer: &mut VecDeque<ReceivedEventData>,
     max_wait_time: StdDuration,
 ) -> Result<(), RecoverAndReceiveError>
@@ -142,7 +142,10 @@ where
         }
 
         // reattach the link
-        client.recover_consumer(consumer).await?;
+        match should_resume_link {
+            true => client.recover_consumer(consumer).await?,
+            false => recover_consumer_by_creating_new_consumer(client, consumer).await?
+        }
     }
 
     consumer
@@ -160,6 +163,7 @@ async fn recover_and_recv<RP>(
     client: &mut AmqpClient,
     consumer: &mut AmqpConsumer<RP>,
     should_try_recover: bool,
+    should_resume_link: bool,
 ) -> Result<ReceivedEventData, RecoverAndReceiveError>
 where
     RP: EventHubsRetryPolicy + Send,
@@ -173,10 +177,56 @@ where
         }
 
         // reattach the link
-        client.recover_consumer(consumer).await?;
+        match should_resume_link {
+            true => client.recover_consumer(consumer).await?,
+            false => recover_consumer_by_creating_new_consumer(client, consumer).await?
+        }
     }
 
     consumer.recv_and_accept().await.map_err(Into::into)
+}
+
+pub(crate) async fn recover_consumer_by_creating_new_consumer(
+    client: &mut AmqpClient,
+    consumer: &mut AmqpConsumer<impl EventHubsRetryPolicy + Send>,
+) -> Result<(), RecoverAndReceiveError> {
+    log::debug!("Recovering consumer by creating new consumer");
+
+    let consumer_group = &consumer.initial_options.consumer_group;
+    let partition_id = &consumer.initial_options.partition_id;
+    let mut event_position = consumer
+        .current_event_position
+        .clone()
+        .unwrap_or(consumer.initial_options.event_position.clone());
+    match &mut event_position {
+        EventPosition::Offset { is_inclusive, .. } => *is_inclusive = false,
+        EventPosition::SequenceNumber { is_inclusive, .. } => *is_inclusive = false,
+        EventPosition::EnqueuedTime(_) => {}
+    }
+    let prefetch_count = consumer.initial_options.prefetch_count;
+    let owner_level = consumer.initial_options.owner_level;
+    let track_last_enqueued_event_properties =
+        consumer.initial_options.track_last_enqueued_event_properties;
+    let identifier = consumer.initial_options.identifier.clone();
+    let retry_policy = consumer.retry_policy.clone();
+
+    let new_consumer = client
+        .create_consumer(
+            consumer_group,
+            partition_id,
+            identifier,
+            &event_position,
+            retry_policy,
+            track_last_enqueued_event_properties,
+            owner_level,
+            Some(prefetch_count),
+        )
+        .await?;
+
+    let old_consumer = std::mem::replace(consumer, new_consumer);
+    let _ = old_consumer.close().await;
+
+    Ok(())
 }
 
 pub(crate) async fn receive_event_batch<RP>(
@@ -191,11 +241,12 @@ where
     let mut failed_attempts = 0;
     let mut try_timeout = consumer.retry_policy.calculate_try_timeout(failed_attempts);
     let mut should_try_recover = false;
+    let mut should_resume_link = true;
 
     loop {
         let wait_time = max_wait_time.unwrap_or(try_timeout);
         let err =
-            match recover_and_recv_batch(client, consumer, should_try_recover, buffer, wait_time)
+            match recover_and_recv_batch(client, consumer, should_try_recover, should_resume_link, buffer, wait_time)
                 .await
             {
                 Ok(_) => return Ok(()),
@@ -208,6 +259,7 @@ where
             return Err(err);
         }
         should_try_recover = err.should_try_recover();
+        should_resume_link = err.is_link_resumable();
 
         failed_attempts += 1;
         let retry_delay = consumer
@@ -234,11 +286,12 @@ where
     let mut failed_attempts = 0;
     let mut try_timeout = consumer.retry_policy.calculate_try_timeout(failed_attempts);
     let mut should_try_recover = false;
+    let mut should_resume_link = true;
 
     loop {
         let err = match timeout(
             try_timeout,
-            recover_and_recv(client, consumer, should_try_recover),
+            recover_and_recv(client, consumer, should_try_recover, should_resume_link),
         )
         .await
         {
@@ -263,6 +316,7 @@ where
             return Err(err);
         }
         should_try_recover = err.should_try_recover();
+        should_resume_link = err.is_link_resumable();
 
         failed_attempts += 1;
         let retry_delay = consumer

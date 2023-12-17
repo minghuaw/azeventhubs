@@ -29,7 +29,7 @@ use crate::{
         amqp_cbs_link::AmqpCbsLink,
         amqp_constants,
         amqp_filter::{self, ConsumerFilter},
-        LINK_IDENTIFIER, SESSION_IDENTIFIER,
+        LINK_IDENTIFIER, SESSION_IDENTIFIER, amqp_producer::ProducerOptions,
     },
     authorization::{event_hub_claim, event_hub_token_credential::EventHubTokenCredential},
     consumer::EventPosition,
@@ -42,7 +42,7 @@ use crate::{
 use super::{
     amqp_cbs_link::AmqpCbsLinkHandle,
     amqp_connection::AmqpConnection,
-    amqp_consumer::AmqpConsumer,
+    amqp_consumer::{AmqpConsumer, ConsumerOptions},
     amqp_management_link::AmqpManagementLink,
     amqp_producer::AmqpProducer,
     amqp_property,
@@ -293,8 +293,18 @@ impl AmqpConnectionScope {
         options: PartitionPublishingOptions,
         identifier: Option<String>,
         retry_policy: RP,
-    ) -> Result<AmqpProducer<RP>, OpenProducerError> {
+    ) -> Result<AmqpProducer<RP>, OpenProducerError> 
+    where
+        RP: Clone,
+    {
         use std::borrow::Cow;
+
+        let initial_options = ProducerOptions {
+            partition_id: partition_id.clone(),
+            identifier: identifier.clone(),
+            requested_features: features,
+            partition_options: options.clone(),
+        };
 
         let path: Cow<str> = match &partition_id {
             None => Cow::Borrowed(&self.event_hub_name),
@@ -328,6 +338,8 @@ impl AmqpConnectionScope {
             retry_policy,
             endpoint: producer_endpoint,
             cbs_command_sender: self.cbs_link_handle.command_sender().await,
+
+            initial_options,
         })
     }
 
@@ -425,7 +437,20 @@ impl AmqpConnectionScope {
         track_last_enqueued_event_properties: bool,
         identifier: Option<String>,
         retry_policy: RP,
-    ) -> Result<AmqpConsumer<RP>, OpenConsumerError> {
+    ) -> Result<AmqpConsumer<RP>, OpenConsumerError> 
+    where
+        RP: Clone,
+    {
+        let initial_options = ConsumerOptions {
+            consumer_group: consumer_group.to_string(),
+            partition_id: partition_id.to_string(),
+            identifier: identifier.clone(),
+            event_position: event_position.clone(),
+            track_last_enqueued_event_properties,
+            owner_level,
+            prefetch_count,
+        };
+
         let path = format!(
             "{}/ConsumerGroups/{}/Partitions/{}",
             self.event_hub_name, consumer_group, partition_id
@@ -460,6 +485,7 @@ impl AmqpConnectionScope {
             prefetch_count,
             cbs_command_sender: self.cbs_link_handle.command_sender().await,
             endpoint: consumer_endpoint,
+            initial_options,
         })
     }
 
