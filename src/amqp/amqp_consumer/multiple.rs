@@ -22,7 +22,7 @@ use crate::{
     ReceivedEventData,
 };
 
-use super::{AmqpConsumer, EventStream, EventStreamState, EventStreamStateValue};
+use super::{AmqpConsumer, EventStream, EventStreamState, EventStreamStateValue, single::recover_consumer_by_creating_new_consumer};
 
 type ConsumerBoxedFuture<RP> =
     Pin<Box<dyn Future<Output = (Result<ReceivedEventData, RecvError>, AmqpConsumer<RP>)> + Send>>;
@@ -233,6 +233,8 @@ async fn recover_consumers<RP>(
 where
     RP: EventHubsRetryPolicy + Send,
 {
+    log::debug!("Recovering consumers");
+
     // Client should be already recovered
     let mut result = Ok(());
 
@@ -247,11 +249,34 @@ where
     result.map_err(Into::into)
 }
 
+async fn recover_consumers_by_creating_new_consumers<RP>(
+    client: &mut AmqpClient,
+    consumers: &mut MultipleAmqpConsumers<RP>,
+) -> Result<(), RecoverAndReceiveError>
+where
+    RP: EventHubsRetryPolicy + Send,
+{
+    // Client should be already recovered
+    let mut result = Ok(());
+
+    for c in consumers.inner.iter_mut() {
+        // Consumers that are polling would probably encounter an error
+        // when they poll again, and it will enter another recovery
+        if let ConsumerState::Value { value } = c {
+            result = result.and(recover_consumer_by_creating_new_consumer(client, value).await);
+        }
+    }
+
+    result.map_err(Into::into)
+}
+
+
 // There is a possibility that no child consumer exists, so a None is returned.
 async fn recover_and_recv<RP>(
     client: &mut AmqpClient,
     consumers: &mut MultipleAmqpConsumers<RP>,
     should_try_recover: bool,
+    should_resume_consumers: bool,
 ) -> Result<Option<ReceivedEventData>, RecoverAndReceiveError>
 where
     RP: EventHubsRetryPolicy + Send + Unpin + 'static,
@@ -264,7 +289,10 @@ where
             }
         }
 
-        recover_consumers(client, consumers).await?;
+        match should_resume_consumers {
+            true => recover_consumers(client, consumers).await?,
+            false => recover_consumers_by_creating_new_consumers(client, consumers).await?,
+        }
     }
 
     consumers.recv().await.transpose().map_err(Into::into)
@@ -280,11 +308,12 @@ where
     let mut failed_attempts = 0;
     let mut try_timeout = consumers.retry_policy.calculate_try_timeout(failed_attempts);
     let mut should_try_recover = false;
+    let mut should_resume_consumers = true;
 
     loop {
         let err = match timeout(
             try_timeout,
-            recover_and_recv(client, consumers, should_try_recover)
+            recover_and_recv(client, consumers, should_try_recover, should_resume_consumers)
         ).await {
             Ok(result) => match result.transpose()? {
                 Ok(event) => return Some(Ok(event)),
@@ -303,6 +332,7 @@ where
             return Some(Err(err));
         }
         should_try_recover = err.should_try_recover();
+        should_resume_consumers = err.is_link_resumable();
 
         failed_attempts += 1;
         let retry_delay = consumers

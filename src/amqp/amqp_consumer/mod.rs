@@ -5,7 +5,7 @@ use std::{
 
 use futures_util::{Future, Stream, FutureExt, ready};
 
-use crate::{EventHubsRetryPolicy, ReceivedEventData};
+use crate::{EventHubsRetryPolicy, ReceivedEventData, consumer::EventPosition};
 
 use self::single::EventStreamStateValue;
 
@@ -34,6 +34,17 @@ type ClosingBoxedFuture<'a> =
 enum Consumer<RP> {
     Single(AmqpConsumer<RP>),
     Multiple(MultipleAmqpConsumers<RP>),
+}
+
+#[derive(Debug)]
+pub(crate) struct ConsumerOptions {
+    pub(crate) consumer_group: String,
+    pub(crate) partition_id: String,
+    pub(crate) identifier: Option<String>,
+    pub(crate) event_position: EventPosition,
+    pub(crate) track_last_enqueued_event_properties: bool,
+    pub(crate) owner_level: Option<i64>,
+    pub(crate) prefetch_count: u32,
 }
 
 pin_project_lite::pin_project! {

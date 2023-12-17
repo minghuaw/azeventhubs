@@ -9,12 +9,12 @@ use fe2o3_amqp::{
     },
     session::{self, BeginError},
 };
-use fe2o3_amqp_management::error::{Error as ManagementError, AttachError};
+use fe2o3_amqp_management::error::{AttachError, Error as ManagementError};
 use fe2o3_amqp_types::messaging::{Modified, Rejected, Released};
 use timer_kit::error::Elapsed;
 
 use crate::{
-    consumer::error::OffsetIsEmpty, core::RecoverableError, util::IntoAzureCoreError, EventData,
+    consumer::error::OffsetIsEmpty, core::RecoverableError, util::{IntoAzureCoreError, error::ResumableLinkError}, EventData,
 };
 
 /// The value exceeds the maximum length allowed
@@ -297,7 +297,9 @@ impl From<OpenProducerError> for azure_core::Error {
 
         match err {
             OpenProducerError::ParseEndpoint(err) => err.into(),
-            OpenProducerError::ConnectionScopeDisposed => azure_core::Error::new(ErrorKind::Io, err),
+            OpenProducerError::ConnectionScopeDisposed => {
+                azure_core::Error::new(ErrorKind::Io, err)
+            }
             OpenProducerError::CbsAuth(err) => err.into(),
             OpenProducerError::Session(err) => err.into_azure_core_error(),
             OpenProducerError::SenderLink(err) => err.into_azure_core_error(),
@@ -354,7 +356,9 @@ impl From<OpenConsumerError> for azure_core::Error {
 
         match err {
             OpenConsumerError::ParseEndpoint(err) => err.into(),
-            OpenConsumerError::ConnectionScopeDisposed => azure_core::Error::new(ErrorKind::Io, err),
+            OpenConsumerError::ConnectionScopeDisposed => {
+                azure_core::Error::new(ErrorKind::Io, err)
+            }
             OpenConsumerError::CbsAuth(err) => err.into(),
             OpenConsumerError::Session(err) => err.into_azure_core_error(),
             OpenConsumerError::ReceiverLink(err) => err.into_azure_core_error(),
@@ -659,6 +663,38 @@ pub enum RecoverAndSendError {
     Elapsed(#[from] Elapsed),
 }
 
+impl RecoverAndSendError {
+    pub(crate) fn is_link_resumable(&self) -> bool {
+        match self {
+            RecoverAndSendError::SenderDetach(err) => err.is_resumable(),
+            RecoverAndSendError::SenderResume(err) => err.is_resumable(),
+            RecoverAndSendError::Send(err) => err.is_resumable(),
+            RecoverAndSendError::NotAccepted(_) => true,
+            RecoverAndSendError::Elapsed(_) => true,
+            
+            // These errors should be unreachable
+            RecoverAndSendError::ConnectionScopeDisposed |
+            RecoverAndSendError::ParseEndpoint(_) |
+            RecoverAndSendError::CbsAuth(_) |
+            RecoverAndSendError::SessionBegin(_) |
+            RecoverAndSendError::SenderAttach(_) => false,
+        }
+    }
+}
+
+impl From<OpenProducerError> for RecoverAndSendError {
+    fn from(value: OpenProducerError) -> Self {
+        match value {
+            OpenProducerError::ParseEndpoint(err) => err.into(),
+            OpenProducerError::ConnectionScopeDisposed => Self::ConnectionScopeDisposed,
+            OpenProducerError::CbsAuth(err) => err.into(),
+            OpenProducerError::Session(err) => err.into(),
+            OpenProducerError::SenderLink(err) => err.into(),
+            OpenProducerError::Elapsed(err) => err.into(),
+        }
+    }
+}
+
 impl From<RecoverProducerError> for RecoverAndSendError {
     fn from(value: RecoverProducerError) -> Self {
         match value {
@@ -941,9 +977,59 @@ pub enum RecoverAndReceiveError {
 
     #[error(transparent)]
     SessionEnd(#[from] fe2o3_amqp::session::Error),
+    
+    #[error(transparent)]
+    Elapsed(#[from] Elapsed),
 
-    // #[error(transparent)]
-    // Elapsed(#[from] Elapsed),
+    #[error(transparent)]
+    OffsetIsEmpty(#[from] OffsetIsEmpty),
+}
+
+impl RecoverAndReceiveError {
+    pub(crate) fn is_link_resumable(&self) -> bool {
+        match self {
+            RecoverAndReceiveError::Receive(err) => err.is_resumable(),
+            RecoverAndReceiveError::ReceiverResume(err) => match err {
+                ReceiverResumeErrorKind::AttachError(_) => false,
+                ReceiverResumeErrorKind::FlowError(_) => true,
+                ReceiverResumeErrorKind::DetachError(err) => err.is_resumable(),
+                ReceiverResumeErrorKind::Timeout => true,
+            },
+            RecoverAndReceiveError::LinkDetach(err) => err.is_resumable(),
+            RecoverAndReceiveError::SenderResume(err) => match err {
+                SenderResumeErrorKind::AttachError(_) => false,
+                SenderResumeErrorKind::SendError(err) => err.is_resumable(),
+                SenderResumeErrorKind::DetachError(err) => err.is_resumable(),
+                SenderResumeErrorKind::Timeout => true,
+            },
+            RecoverAndReceiveError::Disposition(_) => true,
+            RecoverAndReceiveError::Elapsed(_) => true,
+
+            // The errors below should be unreachable
+            RecoverAndReceiveError::CbsAuth(_) => false,
+            RecoverAndReceiveError::SessionBegin(_) => false,
+            RecoverAndReceiveError::ConnectionScopeDisposed => false,
+            RecoverAndReceiveError::Parse(_) => false,
+            RecoverAndReceiveError::Open(_) => false,
+            RecoverAndReceiveError::WebSocket(_) => false,
+            RecoverAndReceiveError::SessionEnd(_) => false,
+            RecoverAndReceiveError::OffsetIsEmpty(_) => false,
+        }
+    }
+}
+
+impl From<OpenConsumerError> for RecoverAndReceiveError {
+    fn from(value: OpenConsumerError) -> Self {
+        match value {
+            OpenConsumerError::ParseEndpoint(err) => err.into(),
+            OpenConsumerError::ConnectionScopeDisposed => Self::ConnectionScopeDisposed,
+            OpenConsumerError::CbsAuth(err) => err.into(),
+            OpenConsumerError::Session(err) => err.into(),
+            OpenConsumerError::ReceiverLink(err) => ReceiverResumeErrorKind::AttachError(err).into(),
+            OpenConsumerError::ConsumerFilter(err) => err.into(),
+            OpenConsumerError::Elapsed(err) => err.into(),
+        }
+    }
 }
 
 impl From<RecoverTransportClientError> for RecoverAndReceiveError {
@@ -1003,7 +1089,8 @@ impl From<RecoverAndReceiveError> for azure_core::Error {
             RecoverAndReceiveError::SenderResume(err) => err.into_azure_core_error(),
             RecoverAndReceiveError::Disposition(err) => err.into_azure_core_error(),
             RecoverAndReceiveError::SessionEnd(err) => err.into_azure_core_error(),
-            // RecoverAndReceiveError::Elapsed(err) => err.into_azure_core_error(),
+            RecoverAndReceiveError::Elapsed(err) => err.into_azure_core_error(),
+            RecoverAndReceiveError::OffsetIsEmpty(err) => err.into(),
         }
     }
 }
@@ -1021,9 +1108,10 @@ impl RecoverableError for RecoverAndReceiveError {
             RecoverAndReceiveError::LinkDetach(_) => true,
             RecoverAndReceiveError::SenderResume(_) => true,
             RecoverAndReceiveError::Disposition(_) => true,
-            // RecoverAndReceiveError::Elapsed(_) => true,
+            RecoverAndReceiveError::Elapsed(_) => true,
             RecoverAndReceiveError::SessionEnd(_) => true, // TODO: should this be true?
             RecoverAndReceiveError::CbsAuth(_) => true,
+            RecoverAndReceiveError::OffsetIsEmpty(_) => false,
         }
     }
 

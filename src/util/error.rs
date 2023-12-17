@@ -7,7 +7,7 @@ use fe2o3_amqp::{
     connection::OpenError,
     link::{
         DetachError, IllegalLinkStateError, ReceiverAttachError, ReceiverResumeErrorKind,
-        RecvError, SendError, SenderAttachError, SenderResumeErrorKind,
+        RecvError, SendError, SenderAttachError, SenderResumeErrorKind, LinkStateError,
     },
     session::BeginError,
 };
@@ -225,6 +225,75 @@ impl IntoAzureCoreError for ManagementError {
                 azure_core::Error::new(ErrorKind::Io, self)
             }
             _ => azure_core::Error::new(ErrorKind::Other, self),
+        }
+    }
+}
+
+pub trait ResumableLinkError {
+    fn is_resumable(&self) -> bool;
+}
+
+impl ResumableLinkError for DetachError {
+    fn is_resumable(&self) -> bool {
+        match self {
+            DetachError::IllegalState => true,
+            DetachError::IllegalSessionState => true,
+            DetachError::RemoteDetachedWithError(_) => true,
+            DetachError::ClosedByRemote => false,
+            DetachError::DetachedByRemote => true,
+            DetachError::RemoteClosedWithError(_) => false,
+        }
+    }
+}
+
+impl ResumableLinkError for LinkStateError {
+    fn is_resumable(&self) -> bool {
+        match self {
+            fe2o3_amqp::link::LinkStateError::IllegalState => true,
+            fe2o3_amqp::link::LinkStateError::IllegalSessionState => true,
+            fe2o3_amqp::link::LinkStateError::RemoteDetached => true,
+            fe2o3_amqp::link::LinkStateError::RemoteDetachedWithError(_) => true,
+            fe2o3_amqp::link::LinkStateError::RemoteClosed => false,
+            fe2o3_amqp::link::LinkStateError::RemoteClosedWithError(_) => false,
+            fe2o3_amqp::link::LinkStateError::ExpectImmediateDetach => true,
+        }
+    }
+}
+
+impl ResumableLinkError for RecvError {
+    fn is_resumable(&self) -> bool {
+        match self {
+            RecvError::LinkStateError(err) => err.is_resumable(),
+            RecvError::TransferLimitExceeded
+            | RecvError::DeliveryIdIsNone
+            | RecvError::DeliveryTagIsNone
+            | RecvError::MessageDecodeError
+            | RecvError::IllegalRcvSettleModeInTransfer
+            | RecvError::InconsistentFieldInMultiFrameDelivery
+            | RecvError::TransactionalAcquisitionIsNotImeplemented => true,
+        }
+    }
+}
+
+impl ResumableLinkError for SendError {
+    fn is_resumable(&self) -> bool {
+        match self {
+            SendError::LinkStateError(err) => err.is_resumable(),
+            SendError::Detached(err) => err.is_resumable(),
+            SendError::NonTerminalDeliveryState => true,
+            SendError::IllegalDeliveryState => true,
+            SendError::MessageEncodeError => true,
+        }
+    }
+}
+
+impl ResumableLinkError for SenderResumeErrorKind {
+    fn is_resumable(&self) -> bool {
+        match self {
+            SenderResumeErrorKind::AttachError(_) => false,
+            SenderResumeErrorKind::SendError(err) => err.is_resumable(),
+            SenderResumeErrorKind::DetachError(err) => err.is_resumable(),
+            SenderResumeErrorKind::Timeout => true,
         }
     }
 }

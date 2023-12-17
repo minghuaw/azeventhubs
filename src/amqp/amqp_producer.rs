@@ -6,9 +6,9 @@ use tokio::sync::mpsc;
 
 use crate::{
     amqp::amqp_message_converter::create_envelope_from_events,
-    core::{RecoverableError, RecoverableTransport, TransportClient, TransportProducer},
+    core::{RecoverableError, RecoverableTransport, TransportClient, TransportProducer, TransportProducerFeatures},
     event_hubs_retry_policy::EventHubsRetryPolicy,
-    producer::{CreateBatchOptions, SendEventOptions, MINIMUM_BATCH_SIZE_LIMIT_IN_BYTES},
+    producer::{CreateBatchOptions, SendEventOptions, MINIMUM_BATCH_SIZE_LIMIT_IN_BYTES, PartitionPublishingOptions},
     util::{self},
     EventData,
 };
@@ -27,6 +27,14 @@ use super::{
 };
 
 #[derive(Debug)]
+pub(crate) struct ProducerOptions {
+    pub(crate) partition_id: Option<String>,
+    pub(crate) identifier: Option<String>,
+    pub(crate) requested_features: TransportProducerFeatures,
+    pub(crate) partition_options: PartitionPublishingOptions,
+}
+
+#[derive(Debug)]
 pub struct AmqpProducer<RP> {
     pub(crate) session_handle: SessionHandle<()>,
     pub(crate) _session_identifier: u32,
@@ -38,6 +46,8 @@ pub struct AmqpProducer<RP> {
     pub(crate) retry_policy: RP,
     pub(crate) endpoint: Url,
     pub(crate) cbs_command_sender: mpsc::Sender<Command>,
+
+    pub(crate) initial_options: ProducerOptions,
 }
 
 impl<RP> AmqpProducer<RP> {
@@ -124,6 +134,33 @@ pub struct RecoverableAmqpProducer<'a, RP> {
     client: &'a mut AmqpClient,
 }
 
+impl<'a, RP> RecoverableAmqpProducer<'a, RP> 
+where
+    RP: EventHubsRetryPolicy + Clone + Send,
+{
+    async fn recover_producer_by_creating_new_producer(&mut self) -> Result<(), RecoverAndSendError> {
+        log::debug!("Recovering producer by creating a new producer");
+
+        let partition_id = self.producer.initial_options.partition_id.clone();
+        let identifier = self.producer.initial_options.identifier.clone();
+        let requested_features = self.producer.initial_options.requested_features;
+        let partition_options = self.producer.initial_options.partition_options.clone();
+        let retry_policy = self.producer.retry_policy.clone();
+
+        let new_producer = self.client.create_producer(
+            partition_id,
+            identifier,
+            requested_features,
+            partition_options,
+            retry_policy,
+        ).await?;
+
+        let old_producer = std::mem::replace(self.producer, new_producer);
+        let _ = old_producer.close().await;
+        Ok(())
+    }
+}
+
 impl<'a, RP> RecoverableAmqpProducer<'a, RP>
 where
     RP: EventHubsRetryPolicy + Send,
@@ -138,6 +175,7 @@ where
     async fn recover_and_send_batch_envelope(
         &mut self,
         should_try_recover: bool,
+        should_resume_producer: bool,
         batch: &mut BatchEnvelope,
     ) -> Result<(), RecoverAndSendError> {
         if should_try_recover {
@@ -149,7 +187,10 @@ where
             }
 
             // reattach the link
-            self.client.recover_producer(self.producer).await?;
+            match should_resume_producer {
+                true => self.client.recover_producer(self.producer).await?,
+                false => self.recover_producer_by_creating_new_producer().await?,
+            }
         }
 
         self.producer.send_batch_envelope(batch).await?;
@@ -166,9 +207,10 @@ where
             .retry_policy
             .calculate_try_timeout(failed_attempts);
         let mut should_try_recover = false;
+        let mut should_resume_producer = true;
 
         loop {
-            let fut = self.recover_and_send_batch_envelope(should_try_recover, &mut batch);
+            let fut = self.recover_and_send_batch_envelope(should_try_recover, should_resume_producer, &mut batch);
             let err = match util::time::timeout(try_timeout, fut).await {
                 Ok(Ok(_)) => return Ok(()),
                 Ok(Err(err)) => err,
@@ -182,6 +224,7 @@ where
                 return Err(err);
             }
             should_try_recover = err.should_try_recover();
+            should_resume_producer = err.is_link_resumable();
 
             failed_attempts += 1;
             let retry_delay = self

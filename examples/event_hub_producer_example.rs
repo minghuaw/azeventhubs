@@ -24,6 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let event = format!("Hello, world {}!", i);
         let options = SendEventOptions::new().with_partition_id(&partition_ids[0]);
         producer_client.send_event(event, options).await?;
+        tokio::time::sleep(tokio::time::Duration::from_millis(5000)).await;
     }
 
     producer_client.close().await?;
