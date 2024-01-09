@@ -1,6 +1,6 @@
 [package]
 name = "azeventhubs"
-version = "0.18.3"
+version = "0.19.0"
 edition = "2021"
 description = "An unofficial AMQP 1.0 rust client for Azure Event Hubs"
 readme = "README.md"
@@ -34,7 +34,7 @@ pin-project-lite = "0.2.9"
 serde = "1"
 
 # Azure dependencies
-azure_core = "0.18"
+azure_core = "0.19"
 
 # AMQP dependencies
 fe2o3-amqp = { version = "0.8.26" }
@@ -65,7 +65,7 @@ tokio = {version = "1.0", features = ["macros", "rt", "rt-multi-thread"]}
 env_logger = "0.10.0"
 fe2o3-amqp = { version = "0.8.21", features = ["log"] }
 bytes = "1"
-azure_identity = "0.18"
+azure_identity = "0.19"
 criterion = { version = "0.5", features = ["async_tokio"] }
 
 [features]

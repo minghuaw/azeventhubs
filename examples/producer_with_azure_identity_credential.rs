@@ -5,6 +5,8 @@ use azure_identity::DefaultAzureCredential;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+
     let _ = dotenv::from_filename(".env");
     let namespace = std::env::var("EVENT_HUBS_NAMESPACE")?;
     let fqn = format!("{}.servicebus.windows.net", namespace);
@@ -20,9 +22,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
+    log::info!("Sending a test event");
+
     let event = "test connect using azure identity";
     let options = SendEventOptions::new().with_partition_id("0");
     producer_client.send_event(event, options).await?;
+
+    log::info!("Done sending a test event");
 
     producer_client.close().await?;
 

@@ -1,5 +1,9 @@
 # Change log
 
+## 0.19.0
+
+1. Updated `azure_core` to `0.19.0`
+
 ## 0.18.3
 
 1. A closed link will be recovered by creating a completely new link instead of trying to resume the old link.
