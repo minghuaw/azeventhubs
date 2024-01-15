@@ -194,15 +194,20 @@ pub(crate) async fn recover_consumer_by_creating_new_consumer(
 
     let consumer_group = &consumer.initial_options.consumer_group;
     let partition_id = &consumer.initial_options.partition_id;
-    let mut event_position = consumer
-        .current_event_position
-        .clone()
-        .unwrap_or(consumer.initial_options.event_position.clone());
-    match &mut event_position {
-        EventPosition::Offset { is_inclusive, .. } => *is_inclusive = false,
-        EventPosition::SequenceNumber { is_inclusive, .. } => *is_inclusive = false,
-        EventPosition::EnqueuedTime(_) => {}
-    }
+
+    // The current_event_position is only empty when the consumer is created for the first time
+    // and has not received any events yet. In this case, we should use the initial event position
+    let event_position = match consumer.current_event_position.clone() {
+        Some(mut p) => {
+            match &mut p {
+                EventPosition::Offset { is_inclusive, .. } => *is_inclusive = false,
+                EventPosition::SequenceNumber { is_inclusive, .. } => *is_inclusive = false,
+                EventPosition::EnqueuedTime(_) => {}
+            }
+            p
+        },
+        None => consumer.initial_options.event_position.clone(),
+    };
     let prefetch_count = consumer.initial_options.prefetch_count;
     let owner_level = consumer.initial_options.owner_level;
     let track_last_enqueued_event_properties =
