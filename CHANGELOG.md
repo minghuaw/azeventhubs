@@ -1,5 +1,10 @@
 # Change log
 
+## 0.19.1
+
+1. Fixed #32. The `is_inclusive` field in `EventPosition` is now only changed to false if it is
+   cloned from the current event position.
+
 ## 0.19.0
 
 1. Updated `azure_core` to `0.19.0`
