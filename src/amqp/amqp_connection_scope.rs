@@ -780,6 +780,8 @@ impl RecoverableTransport for AmqpConnectionScope {
             }
         }
 
+        log::debug!("CBS session and link recovered");
+
         Ok(())
     }
 }

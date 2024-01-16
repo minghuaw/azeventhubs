@@ -1,5 +1,9 @@
 # Change log
 
+## 0.18.4
+
+1. Added more debug logs for CBS recovery process
+
 ## 0.19.1
 
 1. Fixed #32. The `is_inclusive` field in `EventPosition` is now only changed to false if it is
