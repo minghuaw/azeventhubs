@@ -1,5 +1,9 @@
 # Change log
 
+## 0.18.4
+
+1. Added more debug logs for CBS recovery process
+
 ## 0.18.3
 
 1. A closed link will be recovered by creating a completely new link instead of trying to resume the old link.

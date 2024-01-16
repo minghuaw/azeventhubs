@@ -106,7 +106,7 @@ impl Sharable<AmqpCbsLinkHandle> {
         resource: String,
         required_claims: Vec<String>,
     ) -> Result<Result<(), CbsAuthError>, AmqpCbsEventLoopStopped> {
-        match self {
+        let result = match self {
             Self::Owned(link) => {
                 link.request_refreshable_authorization(
                     link_identifier,
@@ -128,6 +128,19 @@ impl Sharable<AmqpCbsLinkHandle> {
                     .await
             }
             Self::None => unreachable!(),
+        };
+
+        match result {
+            Ok(Ok(_)) => Ok(Ok(())),
+            Ok(Err(err)) => 
+            {
+                log::error!("CBS authorization refresh failed: {}", err);
+                Ok(Err(err))
+            },
+            Err(err) => {
+                log::error!("CBS authorization refresh failed: {}", err);
+                Err(err)
+            },
         }
     }
 
@@ -260,6 +273,8 @@ impl AmqpCbsLink {
         resource: impl AsRef<str>,
         required_claims: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<Option<crate::util::time::Instant>, CbsAuthError> {
+        log::debug!("Requesting CBS authorization.");
+
         let resource = resource.as_ref();
         let token = self
             .cbs_token_provider
