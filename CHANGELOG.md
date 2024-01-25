@@ -1,5 +1,10 @@
 # Change log
 
+## 0.18.5
+
+1. Changed consumer recovery mechanism to always recreate a new AMQP receiver link instead of trying
+   to resume the old link on a new session.
+
 ## 0.18.4
 
 1. Added more debug logs for CBS recovery process
