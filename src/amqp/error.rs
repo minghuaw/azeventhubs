@@ -985,38 +985,38 @@ pub enum RecoverAndReceiveError {
     OffsetIsEmpty(#[from] OffsetIsEmpty),
 }
 
-impl RecoverAndReceiveError {
-    pub(crate) fn is_link_resumable(&self) -> bool {
-        match self {
-            RecoverAndReceiveError::Receive(err) => err.is_resumable(),
-            RecoverAndReceiveError::ReceiverResume(err) => match err {
-                ReceiverResumeErrorKind::AttachError(_) => false,
-                ReceiverResumeErrorKind::FlowError(_) => true,
-                ReceiverResumeErrorKind::DetachError(err) => err.is_resumable(),
-                ReceiverResumeErrorKind::Timeout => true,
-            },
-            RecoverAndReceiveError::LinkDetach(err) => err.is_resumable(),
-            RecoverAndReceiveError::SenderResume(err) => match err {
-                SenderResumeErrorKind::AttachError(_) => false,
-                SenderResumeErrorKind::SendError(err) => err.is_resumable(),
-                SenderResumeErrorKind::DetachError(err) => err.is_resumable(),
-                SenderResumeErrorKind::Timeout => true,
-            },
-            RecoverAndReceiveError::Disposition(_) => true,
-            RecoverAndReceiveError::Elapsed(_) => true,
+// impl RecoverAndReceiveError {
+//     pub(crate) fn is_link_resumable(&self) -> bool {
+//         match self {
+//             RecoverAndReceiveError::Receive(err) => err.is_resumable(),
+//             RecoverAndReceiveError::ReceiverResume(err) => match err {
+//                 ReceiverResumeErrorKind::AttachError(_) => false,
+//                 ReceiverResumeErrorKind::FlowError(_) => true,
+//                 ReceiverResumeErrorKind::DetachError(err) => err.is_resumable(),
+//                 ReceiverResumeErrorKind::Timeout => true,
+//             },
+//             RecoverAndReceiveError::LinkDetach(err) => err.is_resumable(),
+//             RecoverAndReceiveError::SenderResume(err) => match err {
+//                 SenderResumeErrorKind::AttachError(_) => false,
+//                 SenderResumeErrorKind::SendError(err) => err.is_resumable(),
+//                 SenderResumeErrorKind::DetachError(err) => err.is_resumable(),
+//                 SenderResumeErrorKind::Timeout => true,
+//             },
+//             RecoverAndReceiveError::Disposition(_) => true,
+//             RecoverAndReceiveError::Elapsed(_) => true,
 
-            // The errors below should be unreachable
-            RecoverAndReceiveError::CbsAuth(_) => false,
-            RecoverAndReceiveError::SessionBegin(_) => false,
-            RecoverAndReceiveError::ConnectionScopeDisposed => false,
-            RecoverAndReceiveError::Parse(_) => false,
-            RecoverAndReceiveError::Open(_) => false,
-            RecoverAndReceiveError::WebSocket(_) => false,
-            RecoverAndReceiveError::SessionEnd(_) => false,
-            RecoverAndReceiveError::OffsetIsEmpty(_) => false,
-        }
-    }
-}
+//             // The errors below should be unreachable
+//             RecoverAndReceiveError::CbsAuth(_) => false,
+//             RecoverAndReceiveError::SessionBegin(_) => false,
+//             RecoverAndReceiveError::ConnectionScopeDisposed => false,
+//             RecoverAndReceiveError::Parse(_) => false,
+//             RecoverAndReceiveError::Open(_) => false,
+//             RecoverAndReceiveError::WebSocket(_) => false,
+//             RecoverAndReceiveError::SessionEnd(_) => false,
+//             RecoverAndReceiveError::OffsetIsEmpty(_) => false,
+//         }
+//     }
+// }
 
 impl From<OpenConsumerError> for RecoverAndReceiveError {
     fn from(value: OpenConsumerError) -> Self {
