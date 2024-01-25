@@ -1,5 +1,18 @@
 # Change log
 
+## 0.19.2
+
+1. Ported "0.18.5"
+
+## 0.18.5
+
+1. Changed consumer recovery mechanism to always recreate a new AMQP receiver link instead of trying
+   to resume the old link on a new session.
+
+## 0.18.4
+
+1. Added more debug logs for CBS recovery process
+
 ## 0.19.1
 
 1. Fixed #32. The `is_inclusive` field in `EventPosition` is now only changed to false if it is

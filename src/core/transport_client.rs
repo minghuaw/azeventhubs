@@ -71,12 +71,12 @@ pub trait TransportClient: Sized {
     where
         RP: EventHubsRetryPolicy + Send;
 
-    async fn recover_consumer<RP>(
-        &mut self,
-        consumer: &mut Self::Consumer<RP>,
-    ) -> Result<(), Self::RecoverConsumerError>
-    where
-        RP: EventHubsRetryPolicy + Send;
+    // async fn recover_consumer<RP>(
+    //     &mut self,
+    //     consumer: &mut Self::Consumer<RP>,
+    // ) -> Result<(), Self::RecoverConsumerError>
+    // where
+    //     RP: EventHubsRetryPolicy + Send;
 
     /// Closes the connection to the transport client instance.
     async fn close(

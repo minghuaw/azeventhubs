@@ -1,9 +1,6 @@
 use std::sync::{atomic::Ordering, Arc};
 
 use async_trait::async_trait;
-use fe2o3_amqp::link::ReceiverAttachExchange;
-use fe2o3_amqp_types::messaging::{Body, FilterSet, Modified, Source};
-use serde_amqp::{described::Described, Value};
 use url::Url;
 
 use crate::{
@@ -22,7 +19,6 @@ use crate::{
 use super::{
     amqp_connection_scope::AmqpConnectionScope,
     amqp_consumer::AmqpConsumer,
-    amqp_filter::{self, ConsumerFilter},
     amqp_management::partition_properties::PartitionPropertiesRequest,
     amqp_management_link::AmqpManagementLink,
     amqp_producer::AmqpProducer,
@@ -241,98 +237,98 @@ impl TransportClient for AmqpClient {
         ).await
     }
 
-    async fn recover_consumer<RP>(
-        &mut self,
-        consumer: &mut Self::Consumer<RP>,
-    ) -> Result<(), Self::RecoverConsumerError>
-    where
-        RP: EventHubsRetryPolicy + Send,
-    {
-        log::debug!("Recovering consumer");
+    // async fn recover_consumer<RP>(
+    //     &mut self,
+    //     consumer: &mut Self::Consumer<RP>,
+    // ) -> Result<(), Self::RecoverConsumerError>
+    // where
+    //     RP: EventHubsRetryPolicy + Send,
+    // {
+    //     log::debug!("Recovering consumer");
 
-        let endpoint = consumer.endpoint.to_string();
-        let resource = endpoint.clone();
-        let required_claims = vec![event_hub_claim::LISTEN.to_string()];
-        self.connection_scope
-            .request_refreshable_authorization_using_cbs(
-                consumer.link_identifier,
-                endpoint,
-                resource,
-                required_claims,
-            )
-            .await?;
+    //     let endpoint = consumer.endpoint.to_string();
+    //     let resource = endpoint.clone();
+    //     let required_claims = vec![event_hub_claim::LISTEN.to_string()];
+    //     self.connection_scope
+    //         .request_refreshable_authorization_using_cbs(
+    //             consumer.link_identifier,
+    //             endpoint,
+    //             resource,
+    //             required_claims,
+    //         )
+    //         .await?;
 
-        if let Some(Ok(event_position)) = consumer
-            .current_event_position
-            .clone()
-            .map(|p| amqp_filter::build_filter_expression(&p))
-        {
-            let consumer_filter = Described::<Value>::from(ConsumerFilter(event_position));
-            let source = consumer.receiver.source_mut().get_or_insert(
-                Source::builder()
-                    .address(consumer.endpoint.to_string())
-                    .build(),
-            );
-            let source_filter = source.filter.get_or_insert(FilterSet::new());
-            source_filter.insert(
-                amqp_filter::CONSUMER_FILTER_NAME.into(),
-                consumer_filter.into(),
-            );
-        }
+    //     if let Some(Ok(event_position)) = consumer
+    //         .current_event_position
+    //         .clone()
+    //         .map(|p| amqp_filter::build_filter_expression(&p))
+    //     {
+    //         let consumer_filter = Described::<Value>::from(ConsumerFilter(event_position));
+    //         let source = consumer.receiver.source_mut().get_or_insert(
+    //             Source::builder()
+    //                 .address(consumer.endpoint.to_string())
+    //                 .build(),
+    //         );
+    //         let source_filter = source.filter.get_or_insert(FilterSet::new());
+    //         source_filter.insert(
+    //             amqp_filter::CONSUMER_FILTER_NAME.into(),
+    //             consumer_filter.into(),
+    //         );
+    //     }
 
-        let mut exchange = if consumer.session_handle.is_ended() {
-            let new_session = self.connection_scope.connection.begin_session().await?;
-            let exchange = consumer
-                .receiver
-                .detach_then_resume_on_session(&new_session)
-                .await?;
-            let mut old_session = std::mem::replace(&mut consumer.session_handle, new_session);
-            let _ = old_session.end().await;
-            exchange
-        } else {
-            consumer
-                .receiver
-                .detach_then_resume_on_session(&consumer.session_handle)
-                .await?
-        };
+    //     let mut exchange = if consumer.session_handle.is_ended() {
+    //         let new_session = self.connection_scope.connection.begin_session().await?;
+    //         let exchange = consumer
+    //             .receiver
+    //             .detach_then_resume_on_session(&new_session)
+    //             .await?;
+    //         let mut old_session = std::mem::replace(&mut consumer.session_handle, new_session);
+    //         let _ = old_session.end().await;
+    //         exchange
+    //     } else {
+    //         consumer
+    //             .receiver
+    //             .detach_then_resume_on_session(&consumer.session_handle)
+    //             .await?
+    //     };
 
-        // `ReceiverAttachExchange::Complete` => Resume is complete
-        //
-        // `ReceiverAttachExchange::IncompleteUnsettled` => There are unsettled messages, multiple
-        // detach and re-attach may happen in order to reduce the number of unsettled messages.
-        //
-        // `ReceiverAttachExchange::Resume` => There is one message that is partially transferred,
-        // so it would be OK to let the user use the receiver to receive the message
-        while let ReceiverAttachExchange::IncompleteUnsettled = exchange {
-            match consumer.receiver.recv::<Body<Value>>().await {
-                Ok(delivery) => {
-                    let modified = Modified {
-                        delivery_failed: None,
-                        undeliverable_here: None,
-                        message_annotations: None,
-                    };
-                    if let Err(err) = consumer.receiver.modify(delivery, modified).await {
-                        log::error!("Failed to abandon message: {}", err);
-                        exchange = consumer
-                            .receiver
-                            .detach_then_resume_on_session(&consumer.session_handle)
-                            .await?;
-                    }
-                }
-                Err(err) => {
-                    log::error!("Failed to receive message while trying to settle (abandon) the unsettled: {}", err);
-                    exchange = consumer
-                        .receiver
-                        .detach_then_resume_on_session(&consumer.session_handle)
-                        .await?;
-                }
-            }
-        }
+    //     // `ReceiverAttachExchange::Complete` => Resume is complete
+    //     //
+    //     // `ReceiverAttachExchange::IncompleteUnsettled` => There are unsettled messages, multiple
+    //     // detach and re-attach may happen in order to reduce the number of unsettled messages.
+    //     //
+    //     // `ReceiverAttachExchange::Resume` => There is one message that is partially transferred,
+    //     // so it would be OK to let the user use the receiver to receive the message
+    //     while let ReceiverAttachExchange::IncompleteUnsettled = exchange {
+    //         match consumer.receiver.recv::<Body<Value>>().await {
+    //             Ok(delivery) => {
+    //                 let modified = Modified {
+    //                     delivery_failed: None,
+    //                     undeliverable_here: None,
+    //                     message_annotations: None,
+    //                 };
+    //                 if let Err(err) = consumer.receiver.modify(delivery, modified).await {
+    //                     log::error!("Failed to abandon message: {}", err);
+    //                     exchange = consumer
+    //                         .receiver
+    //                         .detach_then_resume_on_session(&consumer.session_handle)
+    //                         .await?;
+    //                 }
+    //             }
+    //             Err(err) => {
+    //                 log::error!("Failed to receive message while trying to settle (abandon) the unsettled: {}", err);
+    //                 exchange = consumer
+    //                     .receiver
+    //                     .detach_then_resume_on_session(&consumer.session_handle)
+    //                     .await?;
+    //             }
+    //         }
+    //     }
 
-        log::debug!("Consumer recovered");
+    //     log::debug!("Consumer recovered");
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     async fn close(&mut self) -> Result<(), Self::DisposeError> {
         self.connection_scope.close().await

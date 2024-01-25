@@ -484,7 +484,6 @@ impl AmqpConnectionScope {
             retry_policy,
             prefetch_count,
             cbs_command_sender: self.cbs_link_handle.command_sender().await,
-            endpoint: consumer_endpoint,
             initial_options,
         })
     }
@@ -779,6 +778,8 @@ impl RecoverableTransport for AmqpConnectionScope {
                 _ => {}
             }
         }
+
+        log::debug!("CBS session and link recovered");
 
         Ok(())
     }
