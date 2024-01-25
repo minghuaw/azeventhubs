@@ -1,5 +1,9 @@
 # Change log
 
+## 0.19.2
+
+1. Ported "0.18.5"
+
 ## 0.18.5
 
 1. Changed consumer recovery mechanism to always recreate a new AMQP receiver link instead of trying
