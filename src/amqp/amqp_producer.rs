@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use azure_core::Url;
 use fe2o3_amqp::{session::SessionHandle, Sender};
 use fe2o3_amqp_types::messaging::Outcome;
@@ -246,7 +245,6 @@ where
     }
 }
 
-#[async_trait]
 impl<'a, RP> TransportProducer for RecoverableAmqpProducer<'a, RP>
 where
     RP: EventHubsRetryPolicy + Send,

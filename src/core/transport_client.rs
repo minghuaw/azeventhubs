@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use url::Url;
 
 use crate::{
@@ -9,7 +8,6 @@ use crate::{
 
 use super::transport_producer_features::TransportProducerFeatures;
 
-#[async_trait]
 pub trait TransportClient: Sized {
     type Producer<RP>
     where

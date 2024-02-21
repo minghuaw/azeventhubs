@@ -1,5 +1,3 @@
-use async_trait::async_trait;
-
 use crate::{
     producer::{CreateBatchOptions, SendEventOptions},
     EventData,
@@ -7,8 +5,7 @@ use crate::{
 
 use super::transport_event_batch::TransportEventBatch;
 
-#[async_trait]
-pub trait TransportProducer {
+pub(crate) trait TransportProducer {
     type MessageBatch: TransportEventBatch;
 
     type SendError: std::error::Error;
