@@ -1,6 +1,6 @@
 [package]
 name = "azeventhubs"
-version = "0.19.2"
+version = "0.19.3"
 edition = "2021"
 description = "An unofficial AMQP 1.0 rust client for Azure Event Hubs"
 readme = "README.md"
@@ -9,6 +9,7 @@ license = "MIT"
 repository = "https://github.com/minghuaw/azeventhubs"
 homepage = "https://github.com/minghuaw/azeventhubs"
 documentation = "https://docs.rs/azeventhubs"
+rust-version = "1.75.0"
 
 categories = ["api-bindings"]
 keywords = ["sdk", "azure", "eventhubs", "amqp", "cloud"]

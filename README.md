@@ -125,4 +125,8 @@ This crate supports the following feature flags:
 
 WebAssembly is **NOT** supported yet.
 
+## MSRV
+
+1.75.0
+
 License: MIT

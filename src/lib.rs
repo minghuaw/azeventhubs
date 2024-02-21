@@ -122,6 +122,12 @@
 //! # WebAssembly Support
 //!
 //! WebAssembly is **NOT** supported yet.
+//!
+//! # MSRV
+//! 
+//! 1.75.0
+
+
 
 #![deny(missing_docs, missing_debug_implementations)]
 

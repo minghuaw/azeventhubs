@@ -1,5 +1,9 @@
 # Change log
 
+## 0.19.3
+
+1. Removed `async-trait` to use async fn in trait.
+
 ## 0.19.2
 
 1. Ported "0.18.5"
