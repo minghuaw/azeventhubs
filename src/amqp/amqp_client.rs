@@ -1,6 +1,5 @@
 use std::sync::{atomic::Ordering, Arc};
 
-use async_trait::async_trait;
 use url::Url;
 
 use crate::{
@@ -93,7 +92,6 @@ impl AmqpClient {
     }
 }
 
-#[async_trait]
 impl TransportClient for AmqpClient {
     type Producer<RP> = AmqpProducer<RP> where RP: EventHubsRetryPolicy + Send;
     type Consumer<RP> = AmqpConsumer<RP> where RP: EventHubsRetryPolicy + Send;
@@ -347,7 +345,6 @@ impl TransportClient for AmqpClient {
     }
 }
 
-#[async_trait]
 impl RecoverableTransport for AmqpClient {
     type RecoverError = RecoverTransportClientError;
 

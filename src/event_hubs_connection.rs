@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use const_format::concatcp;
 use std::sync::Arc;
 use url::Url;
@@ -549,7 +548,6 @@ fn build_connection_signature_authorization_resource(
     Ok(builder.to_string().to_lowercase())
 }
 
-#[async_trait]
 impl RecoverableTransport for EventHubConnection {
     type RecoverError = azure_core::Error;
 

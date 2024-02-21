@@ -6,7 +6,6 @@ use std::{
     time::Duration as StdDuration,
 };
 
-use async_trait::async_trait;
 use fe2o3_amqp::{
     connection::ConnectionHandle, link::receiver::CreditMode, sasl_profile::SaslProfile,
     session::SessionHandle, Connection, Receiver, Sender, Session,
@@ -701,7 +700,6 @@ async fn recover_connection(
     Ok(())
 }
 
-#[async_trait]
 impl RecoverableTransport for AmqpConnectionScope {
     type RecoverError = AmqpConnectionScopeError;
 

@@ -1,9 +1,7 @@
 use std::time::Duration as StdDuration;
 
-use async_trait::async_trait;
 use futures_util::Stream;
 
-#[async_trait]
 pub trait TransportConsumer {
     type ReceivedEvent;
     type ReceiveError: std::error::Error;
