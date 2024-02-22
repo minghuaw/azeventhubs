@@ -353,7 +353,7 @@ impl<B> AmqpMessageMutExt for Message<B> {
             }
             None => {
                 self.message_annotations.as_mut().map(|m| {
-                    m.remove(&amqp_property::PRODUCER_SEQUENCE_NUMBER as &dyn AnnotationKey)
+                    m.swap_remove(&amqp_property::PRODUCER_SEQUENCE_NUMBER as &dyn AnnotationKey)
                 });
             }
         }
@@ -370,7 +370,7 @@ impl<B> AmqpMessageMutExt for Message<B> {
             None => {
                 self.message_annotations
                     .as_mut()
-                    .map(|m| m.remove(&amqp_property::PRODUCER_GROUP_ID as &dyn AnnotationKey));
+                    .map(|m| m.swap_remove(&amqp_property::PRODUCER_GROUP_ID as &dyn AnnotationKey));
             }
         }
     }
@@ -389,7 +389,7 @@ impl<B> AmqpMessageMutExt for Message<B> {
             None => {
                 self.message_annotations
                     .as_mut()
-                    .map(|m| m.remove(&amqp_property::PRODUCER_OWNER_LEVEL as &dyn AnnotationKey));
+                    .map(|m| m.swap_remove(&amqp_property::PRODUCER_OWNER_LEVEL as &dyn AnnotationKey));
             }
         }
     }

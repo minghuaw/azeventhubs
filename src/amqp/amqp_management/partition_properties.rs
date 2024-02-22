@@ -119,36 +119,36 @@ impl Response for PartitionProperties {
         message: fe2o3_amqp_types::messaging::Message<Self::Body>,
     ) -> Result<Self, Self::Error> {
         let mut body = message.body;
-        let event_hub_name = match body.remove(response_map::NAME) {
+        let event_hub_name = match body.swap_remove(response_map::NAME) {
             Some(Value::String(name)) => name,
             _ => return Err(ManagementError::DecodeError(None)),
         };
-        let partition_identifier = match body.remove(response_map::PARTITION_IDENTIFIER) {
+        let partition_identifier = match body.swap_remove(response_map::PARTITION_IDENTIFIER) {
             Some(Value::String(id)) => id,
             _ => return Err(ManagementError::DecodeError(None)),
         };
-        let is_empty = match body.remove(response_map::PARTITION_RUNTIME_INFO_PARTITION_IS_EMPTY) {
+        let is_empty = match body.swap_remove(response_map::PARTITION_RUNTIME_INFO_PARTITION_IS_EMPTY) {
             Some(Value::Bool(is_empty)) => is_empty,
             _ => return Err(ManagementError::DecodeError(None)),
         };
         let beginning_sequence_number =
-            match body.remove(response_map::PARTITION_BEGIN_SEQUENCE_NUMBER) {
+            match body.swap_remove(response_map::PARTITION_BEGIN_SEQUENCE_NUMBER) {
                 Some(Value::Long(seq)) => seq,
                 _ => return Err(ManagementError::DecodeError(None)),
             };
         let last_sequence_number =
-            match body.remove(response_map::PARTITION_LAST_ENQUEUED_SEQUENCE_NUMBER) {
+            match body.swap_remove(response_map::PARTITION_LAST_ENQUEUED_SEQUENCE_NUMBER) {
                 Some(Value::Long(seq)) => seq,
                 _ => return Err(ManagementError::DecodeError(None)),
             };
-        let last_offset = match body.remove(response_map::PARTITION_LAST_ENQUEUED_OFFSET) {
+        let last_offset = match body.swap_remove(response_map::PARTITION_LAST_ENQUEUED_OFFSET) {
             Some(Value::String(offset)) => {
                 str::parse::<i64>(&offset).map_err(|_| ManagementError::DecodeError(None))?
             }
             Some(Value::Long(offset)) => offset,
             _ => return Err(ManagementError::DecodeError(None)),
         };
-        let last_enqueued_time = match body.remove(response_map::PARTITION_LAST_ENQUEUED_TIME_UTC) {
+        let last_enqueued_time = match body.swap_remove(response_map::PARTITION_LAST_ENQUEUED_TIME_UTC) {
             Some(Value::Timestamp(time)) => OffsetDateTime::from(time),
             _ => return Err(ManagementError::DecodeError(None)),
         };

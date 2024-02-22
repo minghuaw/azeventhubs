@@ -110,15 +110,15 @@ impl Response for EventHubProperties {
         message: fe2o3_amqp_types::messaging::Message<Self::Body>,
     ) -> Result<Self, Self::Error> {
         let mut body = message.body;
-        let name = match body.remove(response_map::NAME) {
+        let name = match body.swap_remove(response_map::NAME) {
             Some(Value::String(name)) => name,
             _ => return Err(ManagementError::DecodeError(None)),
         };
-        let created_on = match body.remove(response_map::CREATED_AT) {
+        let created_on = match body.swap_remove(response_map::CREATED_AT) {
             Some(Value::Timestamp(created_on)) => OffsetDateTime::from(created_on),
             _ => return Err(ManagementError::DecodeError(None)),
         };
-        let partition_ids = match body.remove(response_map::PARTITION_IDENTIFIERS) {
+        let partition_ids = match body.swap_remove(response_map::PARTITION_IDENTIFIERS) {
             Some(Value::Array(Array(partition_ids))) | Some(Value::List(partition_ids)) => {
                 partition_ids
                     .into_iter()

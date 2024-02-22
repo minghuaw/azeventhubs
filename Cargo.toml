@@ -1,6 +1,6 @@
 [package]
 name = "azeventhubs"
-version = "0.19.3"
+version = "0.19.4"
 edition = "2021"
 description = "An unofficial AMQP 1.0 rust client for Azure Event Hubs"
 readme = "README.md"
@@ -37,11 +37,11 @@ serde = "1"
 azure_core = "0.19"
 
 # AMQP dependencies
-fe2o3-amqp = { version = "0.8.26" }
-fe2o3-amqp-types = "0.7.1"
-fe2o3-amqp-management = "0.2.2"
+fe2o3-amqp = { version = "0.8.27" }
+fe2o3-amqp-types = "0.7.2"
+fe2o3-amqp-management = "0.2.3"
 fe2o3-amqp-cbs = "0.2"
-serde_amqp = { version = "0.5.9", features = ["derive", "time"] }
+serde_amqp = { version = "0.5.10", features = ["derive", "time"] }
 fe2o3-amqp-ws = "0.4.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

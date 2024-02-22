@@ -22,14 +22,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    // // Idling for more than 1 minute will cause the connection to be closed. 
+    // // Idling for more than 1 minute will cause the connection to be closed.
     // // This tests whether the client can recover from a closed connection.
     // tokio::time::sleep(std::time::Duration::from_secs(2 * 60)).await;
 
     let options = ReadEventOptions::default();
     let start_position = azeventhubs::consumer::EventPosition::latest();
     // let mut stream = consumer_client.read_events(false, options).await?;
-    let mut stream = consumer_client.read_events_from_partition("0", start_position, options).await?;
+    let mut stream = consumer_client
+        .read_events_from_partition("0", start_position, options)
+        .await?;
 
     let mut counter = 0;
     while let Some(event) = stream.next().await {
