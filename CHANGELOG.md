@@ -1,5 +1,17 @@
 # Change log
 
+## 0.20.0
+
+1. Updated dependencies
+   1. `base64` to "0.22"
+   2. `azure_core` to "0.20"
+   3. `fe2o3-amqp` to "0.10"
+   4. `fe2o3-amqp-types` to "0.10"
+   5. `fe2o3-amqp-management` to "0.10"
+   6. `fe2o3-amqp-cbs` to "0.10"
+   7. `serde_amqp` to "0.10"
+   8. `fe2o3-amqp-ws` to "0.10"
+
 ## 0.19.4
 
 1. Updated depdencies

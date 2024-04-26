@@ -1,7 +1,7 @@
 use azeventhubs::producer::{
     EventHubProducerClient, EventHubProducerClientOptions, SendEventOptions,
 };
-use azure_identity::DefaultAzureCredential;
+use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,7 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let fqn = format!("{}.servicebus.windows.net", namespace);
     let event_hub_name = std::env::var("EVENT_HUB_NAME")?;
     let options = EventHubProducerClientOptions::default();
-    let default_credential = DefaultAzureCredential::default();
+    let default_credential =
+        DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
 
     let mut producer_client = EventHubProducerClient::new_from_credential(
         fqn,

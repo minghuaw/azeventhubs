@@ -1,7 +1,7 @@
 use azure_core::auth::AccessToken;
 use fe2o3_amqp_cbs::{token::CbsToken, AsyncCbsTokenProvider};
 use fe2o3_amqp_types::primitives::Timestamp;
-use std::{future::Future, sync::Arc, pin::Pin};
+use std::{future::Future, sync::Arc};
 use time::Duration as TimeSpan;
 
 use crate::authorization::event_hub_token_credential::EventHubTokenCredential;
@@ -45,17 +45,19 @@ fn is_nearing_expiration(token: &AccessToken, token_expiration_buffer: TimeSpan)
 }
 
 impl AsyncCbsTokenProvider for CbsTokenProvider {
-    type Fut<'a> = Pin<Box<dyn Future<Output = Result<CbsToken<'a>, azure_core::error::Error>> + Send + 'a>>;
+    // type Fut<'a> = Pin<Box<dyn Future<Output = Result<CbsToken<'a>, azure_core::error::Error>> + Send + 'a>>;
     type Error = azure_core::error::Error;
 
+    // rustc complains that the function is not Send if using AFIT. This problem is gone if using RPIT.
+    #[allow(clippy::manual_async_fn)]
     fn get_token_async(
         &mut self,
         _container_id: impl AsRef<str>,
         _resource_id: impl AsRef<str>,
         _claims: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Self::Fut<'_> {
-        // CbsTokenFut { provider: self }
-        Box::pin(async {
+    ) -> impl Future<Output = Result<CbsToken<'_>, azure_core::error::Error>> + Send {
+        async move {
+            // CbsTokenFut { provider: self }
             let expiration_buffer = self.token_expiration_buffer;
             let entity_type = self.token_type.entity_type().to_string();
 
@@ -63,30 +65,33 @@ impl AsyncCbsTokenProvider for CbsTokenProvider {
                 TokenType::SharedAccessToken { credential } => {
                     let token = credential.get_token_using_default_resource().await?;
                     Ok(token)
-                },
-                TokenType::JsonWebToken { credential, cached_token } => {
-                    match cached_token {
-                        Some(cached) => {
-                            if is_nearing_expiration(cached, expiration_buffer) {
-                                let token = credential.get_token_using_default_resource().await?;
-                                *cached = token.clone();
-                            }
-                            Ok(cached.clone())
-                        },
-                        None => {
-                            let token = credential.get_token_using_default_resource().await?;
-                            *cached_token = Some(token.clone());
-                            Ok(token)
-                        }
-                    }
                 }
+                TokenType::JsonWebToken {
+                    credential,
+                    cached_token,
+                } => match cached_token {
+                    Some(cached) => {
+                        if is_nearing_expiration(cached, expiration_buffer) {
+                            let token = credential.get_token_using_default_resource().await?;
+                            *cached = token.clone();
+                        }
+                        Ok(cached.clone())
+                    }
+                    None => {
+                        let token = credential.get_token_using_default_resource().await?;
+                        *cached_token = Some(token.clone());
+                        Ok(token)
+                    }
+                },
             };
-            result.map(|token| CbsToken::new(
-                token.token.secret().to_owned(),
-                entity_type,
-                Some(Timestamp::from(token.expires_on)),
-            ))
-        })
+            result.map(|token| {
+                CbsToken::new(
+                    token.token.secret().to_owned(),
+                    entity_type,
+                    Some(Timestamp::from(token.expires_on)),
+                )
+            })
+        }
     }
 }
 

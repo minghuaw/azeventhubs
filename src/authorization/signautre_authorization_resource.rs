@@ -29,37 +29,10 @@ pub fn build_connection_signature_authorization_resource(
     fully_qualified_namespace: Option<&str>,
     event_hub_name: Option<&str>,
 ) -> Result<String, BuildResourceError> {
-    // // If there is no namespace, there is no basis for a URL and the
-    // // resource is empty.
-
-    // if (string.IsNullOrEmpty(fullyQualifiedNamespace))
-    // {
-    //     return string.Empty;
-    // }
-
-    // // Form a normalized URI to identify the resource.
-
-    // var builder = new UriBuilder(fullyQualifiedNamespace)
-    // {
-    //     Scheme = transportType.GetUriScheme(),
-    //     Path = eventHubName,
-    //     Port = -1,
-    //     Fragment = string.Empty,
-    //     Password = string.Empty,
-    //     UserName = string.Empty,
-    // };
-
-    // if (builder.Path.EndsWith("/", StringComparison.Ordinal))
-    // {
-    //     builder.Path = builder.Path.TrimEnd('/');
-    // }
-
-    // return builder.Uri.AbsoluteUri.ToLowerInvariant();
-
     let fqn = match fully_qualified_namespace {
         // If there is no namespace, there is no basis for a URL and the
         // resource is empty.
-        Some(fqn) if fqn.is_empty() => return Ok(String::new()),
+        Some("") => return Ok(String::new()),
         None => return Ok(String::new()),
         Some(fqn) => fqn,
     };
