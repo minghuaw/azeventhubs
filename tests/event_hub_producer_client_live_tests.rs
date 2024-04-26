@@ -6,6 +6,7 @@ use azeventhubs::{
     },
     EventHubConnection, EventHubConnectionOptions,
 };
+use azure_identity::TokenCredentialOptions;
 
 #[macro_use]
 mod cfg;
@@ -64,7 +65,7 @@ cfg_not_wasm32! {
         let fqn = format!("{}.servicebus.windows.net", namespace);
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
         let options = EventHubProducerClientOptions::default();
-        let default_credential = DefaultAzureCredential::default();
+        let default_credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
 
         let mut producer_client = EventHubProducerClient::new_from_credential(
             fqn,

@@ -202,7 +202,7 @@ impl IntoAzureCoreError for RecvError {
 
         match self {
             RecvError::LinkStateError(_) => azure_core::Error::new(ErrorKind::Io, self),
-            RecvError::MessageDecodeError => {
+            RecvError::MessageDecode(_) => {
                 azure_core::Error::new(ErrorKind::DataConversion, self)
             }
             _ => azure_core::Error::new(ErrorKind::Other, self),
@@ -267,7 +267,7 @@ impl ResumableLinkError for RecvError {
             RecvError::TransferLimitExceeded
             | RecvError::DeliveryIdIsNone
             | RecvError::DeliveryTagIsNone
-            | RecvError::MessageDecodeError
+            | RecvError::MessageDecode(_)
             | RecvError::IllegalRcvSettleModeInTransfer
             | RecvError::InconsistentFieldInMultiFrameDelivery
             | RecvError::TransactionalAcquisitionIsNotImeplemented => true,

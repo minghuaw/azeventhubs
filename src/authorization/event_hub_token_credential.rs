@@ -12,10 +12,11 @@ use super::shared_access_credential::SharedAccessCredential;
 /// # Example
 ///
 /// ```rust, no_run
-/// use azure_identity::DefaultAzureCredential;
+/// use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 /// use azeventhubs::authorization::EventHubTokenCredential;
 ///
-/// let credential = EventHubTokenCredential::from(DefaultAzureCredential::default());
+/// let default_credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
+/// let credential = EventHubTokenCredential::from(default_credential);
 /// ```
 pub enum EventHubTokenCredential {
     // FIXME: This is a temporary workaround until specialization is stablized.
@@ -134,9 +135,9 @@ cfg_not_wasm32! {
 
         #[tokio::test]
         async fn create_credential_with_azure_identity() {
-            use azure_identity::DefaultAzureCredential;
+            use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 
-            let default_credential = DefaultAzureCredential::default();
+            let default_credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
             let event_hub_token_credential = EventHubTokenCredential::from(default_credential);
             let token = event_hub_token_credential
                 .get_token_using_default_resource()

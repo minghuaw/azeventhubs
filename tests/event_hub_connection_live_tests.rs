@@ -3,6 +3,7 @@
 use std::cfg;
 
 use azeventhubs::{EventHubConnection, EventHubConnectionOptions, EventHubsTransportType};
+use azure_identity::TokenCredentialOptions;
 
 #[macro_use]
 mod cfg;
@@ -88,7 +89,7 @@ cfg_not_wasm32! {
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
 
         let options = EventHubConnectionOptions::default();
-        let credential = DefaultAzureCredential::default();
+        let credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
 
         let connection = EventHubConnection::new_from_credential(
             fqn,
