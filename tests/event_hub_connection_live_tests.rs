@@ -2,7 +2,7 @@
 
 use std::cfg;
 
-use azeventhubs::{EventHubConnection, EventHubConnectionOptions, EventHubsTransportType};
+use azeventhubs::{Connection, ConnectionOptions, TransportType};
 use azure_identity::TokenCredentialOptions;
 
 #[macro_use]
@@ -16,8 +16,8 @@ cfg_not_wasm32! {
         common::setup_dotenv();
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING_WITH_ENTITY_PATH").unwrap();
-        let options = EventHubConnectionOptions::default();
-        let connection = EventHubConnection::new_from_connection_string(connection_string, None, options)
+        let options = ConnectionOptions::default();
+        let connection = Connection::new_from_connection_string(connection_string, None, options)
             .await
             .unwrap();
         connection.close().await.unwrap();
@@ -30,10 +30,10 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let mut options = EventHubConnectionOptions::default();
-        options.transport_type = EventHubsTransportType::AmqpWebSockets;
+        let mut options = ConnectionOptions::default();
+        options.transport_type = TransportType::AmqpWebSockets;
         let connection =
-            EventHubConnection::new_from_connection_string(connection_string, event_hub_name, options)
+            Connection::new_from_connection_string(connection_string, event_hub_name, options)
                 .await
                 .unwrap();
         connection.close().await.unwrap();
@@ -46,9 +46,9 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let options = EventHubConnectionOptions::default();
+        let options = ConnectionOptions::default();
         let connection =
-            EventHubConnection::new_from_connection_string(connection_string, event_hub_name, options)
+            Connection::new_from_connection_string(connection_string, event_hub_name, options)
                 .await
                 .unwrap();
         connection.close().await.unwrap();
@@ -59,7 +59,7 @@ cfg_not_wasm32! {
         common::setup_dotenv();
         use azeventhubs::authorization::AzureNamedKeyCredential;
 
-        let options = EventHubConnectionOptions::default();
+        let options = ConnectionOptions::default();
 
         let namespace = std::env::var("EVENT_HUBS_NAMESPACE").unwrap();
         let fqn = format!("{}.servicebus.windows.net", namespace);
@@ -69,7 +69,7 @@ cfg_not_wasm32! {
 
         let named_key_credential = AzureNamedKeyCredential::new(key_name, key);
 
-        let connection = EventHubConnection::new_from_named_key_credential(
+        let connection = Connection::new_from_named_key_credential(
             fqn,
             event_hub_name,
             named_key_credential,
@@ -88,10 +88,10 @@ cfg_not_wasm32! {
         let fqn = format!("{}.servicebus.windows.net", namespace);
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
 
-        let options = EventHubConnectionOptions::default();
+        let options = ConnectionOptions::default();
         let credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
 
-        let connection = EventHubConnection::new_from_credential(
+        let connection = Connection::new_from_credential(
             fqn,
             event_hub_name,
             credential,

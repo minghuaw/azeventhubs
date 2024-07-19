@@ -1,7 +1,7 @@
 #![cfg(all(test, feature = "test_e2e"))]
 
 use azeventhubs::{
-    consumer::{EventHubConsumerClient, EventPosition},
+    consumer::{ConsumerClient, EventPosition},
     primitives::PartitionReceiver,
 };
 
@@ -19,7 +19,7 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+        let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
         let partition_id = "0";
 
         let mut receiver = PartitionReceiver::new_from_connection_string(

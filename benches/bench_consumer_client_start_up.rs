@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use azeventhubs::{
-    consumer::{EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions},
-    EventHubConnection, EventHubConnectionOptions, EventHubsRetryOptions,
+    consumer::{ConsumerClient, ConsumerClientOptions, ReadEventOptions},
+    Connection, ConnectionOptions, RetryOptions,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 use utils::setup_dotenv;
@@ -17,12 +17,12 @@ async fn bench_dedicated_connection_consumers_concurrent(partitions: Vec<String>
         ..Default::default()
     };
 
-    let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
-    let retry_options = EventHubsRetryOptions {
+    let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+    let retry_options = RetryOptions {
         try_timeout: Duration::from_secs(5), // fail early for benchmark
         ..Default::default()
     };
-    let client_options = EventHubConsumerClientOptions {
+    let client_options = ConsumerClientOptions {
         retry_options,
         ..Default::default()
     };
@@ -31,7 +31,7 @@ async fn bench_dedicated_connection_consumers_concurrent(partitions: Vec<String>
         .into_iter()
         .map(|partition_id| async {
             let partition_id = partition_id;
-            let mut consumer = EventHubConsumerClient::new_from_connection_string(
+            let mut consumer = ConsumerClient::new_from_connection_string(
                 consumer_group,
                 connection_string.clone(),
                 event_hub_name.clone(),
@@ -64,19 +64,19 @@ async fn bench_dedicated_connection_consumers_sequential(partitions: Vec<String>
         ..Default::default()
     };
 
-    let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
-    let retry_options = EventHubsRetryOptions {
+    let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+    let retry_options = RetryOptions {
         try_timeout: Duration::from_secs(5), // fail early for benchmark
         ..Default::default()
     };
-    let client_options = EventHubConsumerClientOptions {
+    let client_options = ConsumerClientOptions {
         retry_options,
         ..Default::default()
     };
 
     let mut consumers = Vec::new();
     for _ in partitions.iter() {
-        let consumer = EventHubConsumerClient::new_from_connection_string(
+        let consumer = ConsumerClient::new_from_connection_string(
             consumer_group,
             connection_string.clone(),
             event_hub_name.clone(),
@@ -115,18 +115,18 @@ async fn bench_shared_connection_consumers(partitions: Vec<String>, n: usize) {
     let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
     let event_hub_name = std::env::var("EVENT_HUB_BENCHMARK_NAME").unwrap();
 
-    let options = EventHubConnectionOptions::default();
+    let options = ConnectionOptions::default();
     let mut connection =
-        EventHubConnection::new_from_connection_string(connection_string, event_hub_name, options)
+        Connection::new_from_connection_string(connection_string, event_hub_name, options)
             .await
             .unwrap();
 
-    let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
-    let retry_options = EventHubsRetryOptions {
+    let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+    let retry_options = RetryOptions {
         try_timeout: Duration::from_secs(5), // fail early for benchmark
         ..Default::default()
     };
-    let client_options = EventHubConsumerClientOptions {
+    let client_options = ConsumerClientOptions {
         retry_options,
         ..Default::default()
     };
@@ -137,7 +137,7 @@ async fn bench_shared_connection_consumers(partitions: Vec<String>, n: usize) {
     let futures = partitions
         .into_iter()
         .map(|partition_id| {
-            let mut consumer = EventHubConsumerClient::with_connection(
+            let mut consumer = ConsumerClient::with_connection(
                 consumer_group,
                 &mut connection,
                 client_options.clone(),

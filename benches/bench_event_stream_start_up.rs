@@ -2,8 +2,8 @@ use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 
 use azeventhubs::{
-    consumer::{EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions},
-    EventHubsRetryOptions,
+    consumer::{ConsumerClient, ConsumerClientOptions, ReadEventOptions},
+    RetryOptions,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 use utils::{
@@ -53,12 +53,12 @@ fn criterion_benchmark(c: &mut Criterion) {
     let n_prep = 1000;
     let partitions = rt.block_on(utils::prepare_events_on_all_partitions(n_prep));
 
-    let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
-    let retry_options = EventHubsRetryOptions {
+    let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+    let retry_options = RetryOptions {
         try_timeout: Duration::from_secs(1), // fail early for benchmark
         ..Default::default()
     };
-    let client_options = EventHubConsumerClientOptions {
+    let client_options = ConsumerClientOptions {
         retry_options,
         ..Default::default()
     };

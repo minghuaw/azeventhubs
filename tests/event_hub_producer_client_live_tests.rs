@@ -2,9 +2,9 @@
 
 use azeventhubs::{
     producer::{
-        CreateBatchOptions, EventHubProducerClient, EventHubProducerClientOptions, SendEventOptions,
+        CreateBatchOptions, ProducerClient, ProducerClientOptions, SendEventOptions,
     },
-    EventHubConnection, EventHubConnectionOptions,
+    Connection, ConnectionOptions,
 };
 use azure_identity::TokenCredentialOptions;
 
@@ -19,9 +19,9 @@ cfg_not_wasm32! {
         common::setup_dotenv();
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING_WITH_ENTITY_PATH").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, None, options)
+            ProducerClient::new_from_connection_string(connection_string, None, options)
                 .await
                 .unwrap();
         producer_client.close().await.unwrap();
@@ -38,10 +38,10 @@ cfg_not_wasm32! {
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
         let key_name = std::env::var("EVENT_HUBS_SHARED_ACCESS_KEY_NAME").unwrap();
         let key = std::env::var("EVENT_HUBS_SHARED_ACCESS_KEY").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let named_key_credential = AzureNamedKeyCredential::new(key_name, key);
 
-        let mut producer_client = EventHubProducerClient::new_from_named_key_credential(
+        let mut producer_client = ProducerClient::new_from_named_key_credential(
             fqn,
             event_hub_name,
             named_key_credential,
@@ -64,10 +64,10 @@ cfg_not_wasm32! {
         let namespace = std::env::var("EVENT_HUBS_NAMESPACE").unwrap();
         let fqn = format!("{}.servicebus.windows.net", namespace);
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let default_credential = DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
 
-        let mut producer_client = EventHubProducerClient::new_from_credential(
+        let mut producer_client = ProducerClient::new_from_credential(
             fqn,
             event_hub_name,
             default_credential,
@@ -86,17 +86,17 @@ cfg_not_wasm32! {
         common::setup_dotenv();
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING_WITH_ENTITY_PATH").unwrap();
-        let connection_options = EventHubConnectionOptions::default();
+        let connection_options = ConnectionOptions::default();
         let mut connection =
-            EventHubConnection::new_from_connection_string(connection_string, None, connection_options)
+            Connection::new_from_connection_string(connection_string, None, connection_options)
                 .await
                 .unwrap();
 
-        let client_options = EventHubProducerClientOptions::default();
+        let client_options = ProducerClientOptions::default();
         let producer_client_1 =
-            EventHubProducerClient::with_connection(&mut connection, client_options.clone());
+            ProducerClient::with_connection(&mut connection, client_options.clone());
         let producer_client_2 =
-            EventHubProducerClient::with_connection(&mut connection, client_options);
+            ProducerClient::with_connection(&mut connection, client_options);
         producer_client_1.close().await.unwrap();
         producer_client_2.close().await.unwrap();
 
@@ -109,9 +109,9 @@ cfg_not_wasm32! {
         common::setup_dotenv();
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING_WITH_ENTITY_PATH").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, None, options)
+            ProducerClient::new_from_connection_string(connection_string, None, options)
                 .await
                 .unwrap();
 
@@ -127,9 +127,9 @@ cfg_not_wasm32! {
         common::setup_dotenv();
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING_WITH_ENTITY_PATH").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, None, options)
+            ProducerClient::new_from_connection_string(connection_string, None, options)
                 .await
                 .unwrap();
 
@@ -149,9 +149,9 @@ cfg_not_wasm32! {
         // env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("trace")).init();
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING_WITH_ENTITY_PATH").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, None, options)
+            ProducerClient::new_from_connection_string(connection_string, None, options)
                 .await
                 .unwrap();
 
@@ -176,9 +176,9 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
+            ProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
                 .await
                 .unwrap();
 
@@ -193,9 +193,9 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
+            ProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
                 .await
                 .unwrap();
 

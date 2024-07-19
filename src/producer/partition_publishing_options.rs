@@ -1,4 +1,4 @@
-/// The set of options that can be specified for an <see cref="EventHubProducerClient" />
+/// The set of options that can be specified for an <see cref="ProducerClient" />
 /// to influence its behavior when publishing directly to an Event Hub partition.
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
 pub struct PartitionPublishingOptions {

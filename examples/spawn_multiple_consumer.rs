@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use azeventhubs::consumer::{
-    EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, ReadEventOptions,
+    ConsumerClient, ConsumerClientOptions, EventPosition, ReadEventOptions,
 };
 use futures_util::StreamExt;
 use tokio_util::sync::CancellationToken;
@@ -16,11 +16,11 @@ async fn consumer_main(
     index: usize,
     connection_string: impl Into<String>,
     event_hub_name: impl Into<String>,
-    client_options: EventHubConsumerClientOptions,
+    client_options: ConsumerClientOptions,
     cancel: CancellationToken,
 ) -> Result<(), azure_core::Error> {
-    let mut consumer = EventHubConsumerClient::new_from_connection_string(
-        EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+    let mut consumer = ConsumerClient::new_from_connection_string(
+        ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
         connection_string,
         event_hub_name.into(),
         client_options,
@@ -70,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING")?;
     let event_hub_name = std::env::var("EVENT_HUB_NAME")?;
-    let client_options = EventHubConsumerClientOptions::default();
+    let client_options = ConsumerClientOptions::default();
 
     // We are going to use a cancellation token to stop the spawned tasks.
     let cancel = CancellationToken::new();

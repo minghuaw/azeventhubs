@@ -1,6 +1,6 @@
 use std::time::Duration as StdDuration;
 
-use crate::{EventHubConnectionOptions, EventHubsRetryOptions};
+use crate::{ConnectionOptions, RetryOptions};
 
 /// The default amount of time to wait for messages when reading
 pub const DEFAULT_MAXIMUM_RECEIVE_WAIT_TIME: StdDuration = StdDuration::from_secs(60);
@@ -12,11 +12,11 @@ pub const DEFAULT_PREFETCH_COUNT: u32 = 300;
 /// [`crate::primitives::PartitionReceiver`]
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct PartitionReceiverOptions {
-    /// The set of options that can be specified when creating an [`crate::EventHubConnection`]
-    pub connection_options: EventHubConnectionOptions,
+    /// The set of options that can be specified when creating an [`crate::Connection`]
+    pub connection_options: ConnectionOptions,
 
     /// The set of options to govern retry behavior and try timeouts.
-    pub retry_options: EventHubsRetryOptions,
+    pub retry_options: RetryOptions,
 
     /// The amount of time to wait for messages when reading
     pub maximum_receive_wait_time: StdDuration,

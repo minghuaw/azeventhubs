@@ -1,5 +1,5 @@
 use azeventhubs::consumer::{
-    EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, ReadEventOptions,
+    ConsumerClient, ConsumerClientOptions, EventPosition, ReadEventOptions,
 };
 use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 use futures_util::StreamExt;
@@ -13,21 +13,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let namespace = std::env::var("EVENT_HUBS_NAMESPACE")?;
     let fqn = format!("{}.servicebus.windows.net", namespace);
     let event_hub_name = std::env::var("EVENT_HUB_NAME")?;
-    let options = EventHubConsumerClientOptions::default();
+    let options = ConsumerClientOptions::default();
     let default_credential =
         DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
 
     // Create a consumer client
-    // let mut consumer_client = EventHubConsumerClient::new_from_connection_string(
-    //     EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+    // let mut consumer_client = ConsumerClient::new_from_connection_string(
+    //     ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
     //     connection_string,
     //     event_hub_name,
     //     options,
     // )
     // .await?;
 
-    let mut consumer_client = EventHubConsumerClient::new_from_credential(
-        EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+    let mut consumer_client = ConsumerClient::new_from_credential(
+        ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
         fqn,
         event_hub_name,
         default_credential,

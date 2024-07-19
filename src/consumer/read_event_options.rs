@@ -2,7 +2,7 @@
 pub const DEFAULT_PREFETCH_COUNT: u32 = 300;
 
 /// The set of options that can be specified to configure behavior when reading events from an
-/// `EventHubConsumerClient`
+/// `ConsumerClient`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ReadEventOptions {
     /// The number of events that will be eagerly requested from the Event Hubs service and queued

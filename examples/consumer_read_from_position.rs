@@ -2,7 +2,7 @@
 //! After that, it will start from the last known sequence number, and read another 30 events.
 
 use azeventhubs::consumer::{
-    EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, ReadEventOptions,
+    ConsumerClient, ConsumerClientOptions, EventPosition, ReadEventOptions,
 };
 use futures_util::StreamExt;
 
@@ -12,11 +12,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING")?;
     let event_hub_name = std::env::var("EVENT_HUB_NAME")?;
-    let options = EventHubConsumerClientOptions::default();
+    let options = ConsumerClientOptions::default();
 
     // Create a consumer client
-    let mut consumer_client = EventHubConsumerClient::new_from_connection_string(
-        EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+    let mut consumer_client = ConsumerClient::new_from_connection_string(
+        ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
         connection_string,
         event_hub_name,
         options,

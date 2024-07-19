@@ -7,8 +7,8 @@ use crate::{
     authorization::{event_hub_claim, event_hub_token_credential::EventHubTokenCredential},
     consumer::EventPosition,
     core::{RecoverableTransport, TransportClient, TransportProducerFeatures},
-    event_hubs_connection_option::EventHubConnectionOptions,
-    event_hubs_properties::EventHubProperties,
+    event_hubs_connection_option::ConnectionOptions,
+    event_hubs_properties::Properties,
     event_hubs_retry_policy::EventHubsRetryPolicy,
     producer::PartitionPublishingOptions,
     util::sharable::Sharable,
@@ -55,7 +55,7 @@ impl AmqpClient {
         host: &str,
         event_hub_name: Arc<String>,
         credential: EventHubTokenCredential,
-        options: EventHubConnectionOptions,
+        options: ConnectionOptions,
     ) -> Result<Self, AmqpClientError> {
         // Scheme of service endpoint must always be either "amqp" or "amqps"
         let service_endpoint = format!("{}://{}", options.transport_type.url_scheme(), host);
@@ -109,7 +109,7 @@ impl TransportClient for AmqpClient {
 
     async fn get_properties(
         &mut self,
-    ) -> Result<EventHubProperties, Self::RequestResponseError> {
+    ) -> Result<Properties, Self::RequestResponseError> {
         let access_token = self
             .connection_scope
             .credential

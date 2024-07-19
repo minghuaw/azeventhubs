@@ -1,5 +1,5 @@
 use crate::{
-    consumer::EventPosition, event_hubs_properties::EventHubProperties,
+    consumer::EventPosition, event_hubs_properties::Properties,
     event_hubs_retry_policy::EventHubsRetryPolicy, producer::PartitionPublishingOptions,
     PartitionProperties,
 };
@@ -25,7 +25,7 @@ pub trait TransportClient: Sized {
 
     async fn get_properties(
         &mut self,
-    ) -> Result<EventHubProperties, Self::RequestResponseError>;
+    ) -> Result<Properties, Self::RequestResponseError>;
 
     async fn get_partition_properties(
         &mut self,

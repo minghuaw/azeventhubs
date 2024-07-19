@@ -7,14 +7,14 @@ use crate::{
         AzureSasCredential,
     },
     core::{BasicRetryPolicy, TransportProducer},
-    event_hubs_properties::EventHubProperties,
+    event_hubs_properties::Properties,
     event_hubs_retry_policy::EventHubsRetryPolicy,
-    EventData, EventHubConnection, EventHubsRetryOptions, PartitionProperties,
+    EventData, Connection, RetryOptions, PartitionProperties,
 };
 
 use super::{
     create_batch_options::CreateBatchOptions, event_data_batch::EventDataBatch,
-    event_hub_producer_client_options::EventHubProducerClientOptions,
+    event_hub_producer_client_options::ProducerClientOptions,
     send_event_options::SendEventOptions,
 };
 
@@ -25,48 +25,48 @@ pub const MINIMUM_BATCH_SIZE_LIMIT_IN_BYTES: u64 = 24;
 /// batches.  Depending on the options specified when sending, events may be automatically assigned
 /// an available partition or may request a specific partition.
 ///
-/// The [`EventHubProducerClient`] publishes immediately, ensuring a deterministic outcome for each
+/// The [`ProducerClient`] publishes immediately, ensuring a deterministic outcome for each
 /// send operation, though requires that callers own the responsibility of building and managing
 /// batches.
 #[derive(Debug)]
-pub struct EventHubProducerClient<RP> {
-    connection: EventHubConnection,
+pub struct ProducerClient<RP> {
+    connection: Connection,
     /// An abstracted Event Hub transport-specific producer that is associated with the
     /// Event Hub gateway rather than a specific partition; intended to perform delegated operations.
     gateway_producer: Option<AmqpProducer<RP>>,
     producer_pool: HashMap<String, AmqpProducer<RP>>,
-    options: EventHubProducerClientOptions,
+    options: ProducerClientOptions,
     retry_policy_marker: PhantomData<RP>,
 }
 
-impl EventHubProducerClient<BasicRetryPolicy> {
+impl ProducerClient<BasicRetryPolicy> {
     /// Creates a new client with a custom retry policy.
-    pub fn with_policy<P>() -> EventHubProducerClientBuilder<P>
+    pub fn with_policy<P>() -> ProducerClientBuilder<P>
     where
         P: EventHubsRetryPolicy + Send,
     {
-        EventHubProducerClientBuilder {
+        ProducerClientBuilder {
             _retry_policy_marker: PhantomData,
         }
     }
 
-    /// Creates a [`EventHubProducerClient`] using a connection string.
+    /// Creates a [`ProducerClient`] using a connection string.
     pub async fn new_from_connection_string(
         connection_string: impl Into<String>,
         event_hub_name: impl Into<Option<String>>,
-        client_options: EventHubProducerClientOptions,
+        client_options: ProducerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .new_from_connection_string(connection_string, event_hub_name, client_options)
             .await
     }
 
-    /// Creates a [`EventHubProducerClient`] using a namespace and a credential.
+    /// Creates a [`ProducerClient`] using a namespace and a credential.
     pub async fn new_from_credential(
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: impl Into<EventHubTokenCredential>,
-        client_options: EventHubProducerClientOptions,
+        client_options: ProducerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .new_from_credential(
@@ -78,12 +78,12 @@ impl EventHubProducerClient<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a [`EventHubProducerClient`] using a namespace and a [`AzureNamedKeyCredential`].
+    /// Creates a [`ProducerClient`] using a namespace and a [`AzureNamedKeyCredential`].
     pub async fn new_from_named_key_credential(
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        client_options: EventHubProducerClientOptions,
+        client_options: ProducerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .new_from_named_key_credential(
@@ -95,12 +95,12 @@ impl EventHubProducerClient<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a [`EventHubProducerClient`] using a namespace and a [`AzureSasCredential`].
+    /// Creates a [`ProducerClient`] using a namespace and a [`AzureSasCredential`].
     pub async fn new_from_sas_credential(
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureSasCredential,
-        client_options: EventHubProducerClientOptions,
+        client_options: ProducerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .from_namespace_and_sas_credential(
@@ -112,42 +112,42 @@ impl EventHubProducerClient<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a [`EventHubProducerClient`] using a [`EventHubConnection`].
+    /// Creates a [`ProducerClient`] using a [`Connection`].
     pub fn with_connection(
-        connection: &mut EventHubConnection,
-        client_options: EventHubProducerClientOptions,
+        connection: &mut Connection,
+        client_options: ProducerClientOptions,
     ) -> Self {
         Self::with_policy().with_connection(connection, client_options)
     }
 }
 
-/// A builder for creating a [`EventHubProducerClient`].
+/// A builder for creating a [`ProducerClient`].
 ///
 /// This currently is only used for specifying a custom retry policy.
 #[derive(Debug)]
-pub struct EventHubProducerClientBuilder<RP> {
+pub struct ProducerClientBuilder<RP> {
     _retry_policy_marker: PhantomData<RP>,
 }
 
-impl<RP> EventHubProducerClientBuilder<RP> {
-    /// Creates a [`EventHubProducerClient`] using a connection string.
+impl<RP> ProducerClientBuilder<RP> {
+    /// Creates a [`ProducerClient`] using a connection string.
     pub async fn new_from_connection_string(
         self,
         connection_string: impl Into<String>,
         event_hub_name: impl Into<Option<String>>,
-        client_options: EventHubProducerClientOptions,
-    ) -> Result<EventHubProducerClient<RP>, azure_core::Error>
+        client_options: ProducerClientOptions,
+    ) -> Result<ProducerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_connection_string(
+        let connection = Connection::new_from_connection_string(
             connection_string.into(),
             event_hub_name.into(),
             client_options.connection_options.clone(),
         )
         .await?;
 
-        Ok(EventHubProducerClient {
+        Ok(ProducerClient {
             connection,
             gateway_producer: None,
             producer_pool: HashMap::new(),
@@ -156,18 +156,18 @@ impl<RP> EventHubProducerClientBuilder<RP> {
         })
     }
 
-    /// Creates a [`EventHubProducerClient`] using a namespace and a credential.
+    /// Creates a [`ProducerClient`] using a namespace and a credential.
     pub async fn new_from_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: impl Into<EventHubTokenCredential>,
-        client_options: EventHubProducerClientOptions,
-    ) -> Result<EventHubProducerClient<RP>, azure_core::Error>
+        client_options: ProducerClientOptions,
+    ) -> Result<ProducerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_credential(
+        let connection = Connection::new_from_credential(
             fully_qualified_namespace.into(),
             event_hub_name.into(),
             credential.into(),
@@ -175,7 +175,7 @@ impl<RP> EventHubProducerClientBuilder<RP> {
         )
         .await?;
 
-        Ok(EventHubProducerClient {
+        Ok(ProducerClient {
             connection,
             gateway_producer: None,
             producer_pool: HashMap::new(),
@@ -184,18 +184,18 @@ impl<RP> EventHubProducerClientBuilder<RP> {
         })
     }
 
-    /// Creates a [`EventHubProducerClient`] using a namespace and a [`AzureNamedKeyCredential`].
+    /// Creates a [`ProducerClient`] using a namespace and a [`AzureNamedKeyCredential`].
     pub async fn new_from_named_key_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        client_options: EventHubProducerClientOptions,
-    ) -> Result<EventHubProducerClient<RP>, azure_core::Error>
+        client_options: ProducerClientOptions,
+    ) -> Result<ProducerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_named_key_credential(
+        let connection = Connection::new_from_named_key_credential(
             fully_qualified_namespace.into(),
             event_hub_name.into(),
             credential,
@@ -203,7 +203,7 @@ impl<RP> EventHubProducerClientBuilder<RP> {
         )
         .await?;
 
-        Ok(EventHubProducerClient {
+        Ok(ProducerClient {
             connection,
             gateway_producer: None,
             producer_pool: HashMap::new(),
@@ -212,18 +212,18 @@ impl<RP> EventHubProducerClientBuilder<RP> {
         })
     }
 
-    /// Creates a [`EventHubProducerClient`] using a namespace and a [`AzureSasCredential`].
+    /// Creates a [`ProducerClient`] using a namespace and a [`AzureSasCredential`].
     pub async fn from_namespace_and_sas_credential(
         self,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureSasCredential,
-        client_options: EventHubProducerClientOptions,
-    ) -> Result<EventHubProducerClient<RP>, azure_core::Error>
+        client_options: ProducerClientOptions,
+    ) -> Result<ProducerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_sas_credential(
+        let connection = Connection::new_from_sas_credential(
             fully_qualified_namespace.into(),
             event_hub_name.into(),
             credential,
@@ -231,7 +231,7 @@ impl<RP> EventHubProducerClientBuilder<RP> {
         )
         .await?;
 
-        Ok(EventHubProducerClient {
+        Ok(ProducerClient {
             connection,
             gateway_producer: None,
             producer_pool: HashMap::new(),
@@ -240,15 +240,15 @@ impl<RP> EventHubProducerClientBuilder<RP> {
         })
     }
 
-    /// Creates a [`EventHubProducerClient`] using a [`EventHubConnection`].
+    /// Creates a [`ProducerClient`] using a [`Connection`].
     pub fn with_connection(
         self,
-        connection: &mut EventHubConnection,
-        client_options: EventHubProducerClientOptions,
-    ) -> EventHubProducerClient<RP> {
+        connection: &mut Connection,
+        client_options: ProducerClientOptions,
+    ) -> ProducerClient<RP> {
         let connection = connection.clone_as_shared();
 
-        EventHubProducerClient {
+        ProducerClient {
             connection,
             gateway_producer: None,
             producer_pool: HashMap::new(),
@@ -258,9 +258,9 @@ impl<RP> EventHubProducerClientBuilder<RP> {
     }
 }
 
-impl<RP> EventHubProducerClient<RP>
+impl<RP> ProducerClient<RP>
 where
-    RP: EventHubsRetryPolicy + From<EventHubsRetryOptions> + Send,
+    RP: EventHubsRetryPolicy + From<RetryOptions> + Send,
 {
     async fn get_or_create_gateway_producer_mut(
         &mut self,
@@ -400,7 +400,7 @@ where
     /// the number of partitions present and their identifiers.
     pub async fn get_event_hub_properties(
         &mut self,
-    ) -> Result<EventHubProperties, azure_core::Error> {
+    ) -> Result<Properties, azure_core::Error> {
         self.connection
             .get_properties(RP::from(self.options.retry_options.clone()))
             .await
@@ -424,7 +424,7 @@ where
             .await
     }
 
-    /// Performs the task needed to clean up resources used by the [`EventHubProducerClient`],
+    /// Performs the task needed to clean up resources used by the [`ProducerClient`],
     /// including ensuring that the client itself has been closed.
     ///
     /// This won't close the underlying connection if the connection was shared among multiple

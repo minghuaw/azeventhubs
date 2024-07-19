@@ -3,7 +3,7 @@
 ///
 /// This is a simple enum, so copying it is cheap.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum EventHubsTransportType {
+pub enum TransportType {
     /// The connection uses the AMQP protocol over TCP
     AmqpTcp,
 
@@ -11,13 +11,13 @@ pub enum EventHubsTransportType {
     AmqpWebSockets,
 }
 
-impl Default for EventHubsTransportType {
+impl Default for TransportType {
     fn default() -> Self {
         Self::AmqpTcp
     }
 }
 
-impl EventHubsTransportType {
+impl TransportType {
     pub(crate) const AMQP_SCHEME: &'static str = "amqps";
     pub(crate) const WEBSOCKET_SCHEME: &'static str = "wss";
 

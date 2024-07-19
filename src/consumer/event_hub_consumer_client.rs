@@ -4,12 +4,12 @@ use crate::{
     amqp::amqp_consumer::EventStream,
     authorization::{event_hub_token_credential::EventHubTokenCredential, AzureNamedKeyCredential, AzureSasCredential},
     core::BasicRetryPolicy,
-    event_hubs_properties::EventHubProperties,
+    event_hubs_properties::Properties,
     event_hubs_retry_policy::EventHubsRetryPolicy,
-    EventHubConnection, EventHubsRetryOptions,
+    Connection, RetryOptions,
 };
 
-use super::{EventHubConsumerClientOptions, EventPosition, ReadEventOptions};
+use super::{ConsumerClientOptions, EventPosition, ReadEventOptions};
 
 /// A client responsible for reading [`crate::EventData`] from a specific Event Hub
 /// as a member of a specific consumer group.
@@ -22,33 +22,33 @@ use super::{EventHubConsumerClientOptions, EventPosition, ReadEventOptions};
 /// group to be actively reading events from a given partition. These non-exclusive consumers are
 /// sometimes referred to as "Non-Epoch Consumers."
 #[derive(Debug)]
-pub struct EventHubConsumerClient<RP> {
-    connection: EventHubConnection,
+pub struct ConsumerClient<RP> {
+    connection: Connection,
     retry_policy_marker: PhantomData<RP>,
-    options: EventHubConsumerClientOptions,
+    options: ConsumerClientOptions,
     consumer_group: String,
 }
 
-impl EventHubConsumerClient<BasicRetryPolicy> {
+impl ConsumerClient<BasicRetryPolicy> {
     /// The name of the default consumer group in the Event Hubs service.
     pub const DEFAULT_CONSUMER_GROUP_NAME: &'static str = "$Default";
 
-    /// Creates a new [`EventHubConsumerClientBuilder`] with a custom retry policy.
-    pub fn with_policy<P>() -> EventHubConsumerClientBuilder<P>
+    /// Creates a new [`ConsumerClientBuilder`] with a custom retry policy.
+    pub fn with_policy<P>() -> ConsumerClientBuilder<P>
     where
         P: EventHubsRetryPolicy + Send,
     {
-        EventHubConsumerClientBuilder {
+        ConsumerClientBuilder {
             _retry_policy_marker: PhantomData,
         }
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from a connection string.
+    /// Creates a new [`ConsumerClient`] from a connection string.
     pub async fn new_from_connection_string(
         consumer_group: impl Into<String>,
         connection_string: impl Into<String>,
         event_hub_name: impl Into<Option<String>>,
-        client_options: EventHubConsumerClientOptions,
+        client_options: ConsumerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .new_from_connection_string(
@@ -60,13 +60,13 @@ impl EventHubConsumerClient<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from a namespace and a credential.
+    /// Creates a new [`ConsumerClient`] from a namespace and a credential.
     pub async fn new_from_credential(
         consumer_group: impl Into<String>,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: impl Into<EventHubTokenCredential>,
-        client_options: EventHubConsumerClientOptions,
+        client_options: ConsumerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .new_from_credential(
@@ -79,13 +79,13 @@ impl EventHubConsumerClient<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from a namespace and a [`AzureNamedKeyCredential`].
+    /// Creates a new [`ConsumerClient`] from a namespace and a [`AzureNamedKeyCredential`].
     pub async fn new_from_named_key_credential(
         consumer_group: impl Into<String>,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        client_options: EventHubConsumerClientOptions,
+        client_options: ConsumerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .new_from_named_key_credential(
@@ -98,13 +98,13 @@ impl EventHubConsumerClient<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from a namespace and a [`AzureSasCredential`].
+    /// Creates a new [`ConsumerClient`] from a namespace and a [`AzureSasCredential`].
     pub async fn new_from_sas_credential(
         consumer_group: impl Into<String>,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureSasCredential,
-        client_options: EventHubConsumerClientOptions,
+        client_options: ConsumerClientOptions,
     ) -> Result<Self, azure_core::Error> {
         Self::with_policy()
             .new_from_sas_credential(
@@ -117,41 +117,41 @@ impl EventHubConsumerClient<BasicRetryPolicy> {
             .await
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from an existing connection.
+    /// Creates a new [`ConsumerClient`] from an existing connection.
     pub fn with_connection(
         consumer_group: impl Into<String>,
-        connection: &mut EventHubConnection,
-        client_options: EventHubConsumerClientOptions,
+        connection: &mut Connection,
+        client_options: ConsumerClientOptions,
     ) -> Self {
         Self::with_policy().with_connection(consumer_group, connection, client_options)
     }
 }
 
-/// A builder for creating an [`EventHubConsumerClient`].
+/// A builder for creating an [`ConsumerClient`].
 #[derive(Debug)]
-pub struct EventHubConsumerClientBuilder<RP> {
+pub struct ConsumerClientBuilder<RP> {
     _retry_policy_marker: PhantomData<RP>,
 }
 
-impl<RP> EventHubConsumerClientBuilder<RP> {
-    /// Creates a new [`EventHubConsumerClient`] from an existing connection.
+impl<RP> ConsumerClientBuilder<RP> {
+    /// Creates a new [`ConsumerClient`] from an existing connection.
     pub async fn new_from_connection_string(
         self,
         consumer_group: impl Into<String>,
         connection_string: impl Into<String>,
         event_hub_name: impl Into<Option<String>>,
-        client_options: EventHubConsumerClientOptions,
-    ) -> Result<EventHubConsumerClient<RP>, azure_core::Error>
+        client_options: ConsumerClientOptions,
+    ) -> Result<ConsumerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_connection_string(
+        let connection = Connection::new_from_connection_string(
             connection_string.into(),
             event_hub_name.into(),
             client_options.connection_options.clone(),
         )
         .await?;
-        Ok(EventHubConsumerClient {
+        Ok(ConsumerClient {
             connection,
             retry_policy_marker: PhantomData,
             options: client_options,
@@ -159,26 +159,26 @@ impl<RP> EventHubConsumerClientBuilder<RP> {
         })
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from a namespace and credential.
+    /// Creates a new [`ConsumerClient`] from a namespace and credential.
     pub async fn new_from_credential(
         self,
         consumer_group: impl Into<String>,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: impl Into<EventHubTokenCredential>,
-        client_options: EventHubConsumerClientOptions,
-    ) -> Result<EventHubConsumerClient<RP>, azure_core::Error>
+        client_options: ConsumerClientOptions,
+    ) -> Result<ConsumerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_credential(
+        let connection = Connection::new_from_credential(
             fully_qualified_namespace.into(),
             event_hub_name.into(),
             credential.into(),
             client_options.connection_options.clone(),
         )
         .await?;
-        Ok(EventHubConsumerClient {
+        Ok(ConsumerClient {
             connection,
             retry_policy_marker: PhantomData,
             options: client_options,
@@ -186,26 +186,26 @@ impl<RP> EventHubConsumerClientBuilder<RP> {
         })
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from a namespace and a [`AzureNamedKeyCredential`].
+    /// Creates a new [`ConsumerClient`] from a namespace and a [`AzureNamedKeyCredential`].
     pub async fn new_from_named_key_credential(
         self,
         consumer_group: impl Into<String>,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        client_options: EventHubConsumerClientOptions,
-    ) -> Result<EventHubConsumerClient<RP>, azure_core::Error>
+        client_options: ConsumerClientOptions,
+    ) -> Result<ConsumerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_named_key_credential(
+        let connection = Connection::new_from_named_key_credential(
             fully_qualified_namespace.into(),
             event_hub_name.into(),
             credential,
             client_options.connection_options.clone(),
         )
         .await?;
-        Ok(EventHubConsumerClient {
+        Ok(ConsumerClient {
             connection,
             retry_policy_marker: PhantomData,
             options: client_options,
@@ -213,26 +213,26 @@ impl<RP> EventHubConsumerClientBuilder<RP> {
         })
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from a namespace and a [`AzureSasCredential`].
+    /// Creates a new [`ConsumerClient`] from a namespace and a [`AzureSasCredential`].
     pub async fn new_from_sas_credential(
         self,
         consumer_group: impl Into<String>,
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureSasCredential,
-        client_options: EventHubConsumerClientOptions,
-    ) -> Result<EventHubConsumerClient<RP>, azure_core::Error>
+        client_options: ConsumerClientOptions,
+    ) -> Result<ConsumerClient<RP>, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
-        let connection = EventHubConnection::new_from_sas_credential(
+        let connection = Connection::new_from_sas_credential(
             fully_qualified_namespace.into(),
             event_hub_name.into(),
             credential,
             client_options.connection_options.clone(),
         )
         .await?;
-        Ok(EventHubConsumerClient {
+        Ok(ConsumerClient {
             connection,
             retry_policy_marker: PhantomData,
             options: client_options,
@@ -240,14 +240,14 @@ impl<RP> EventHubConsumerClientBuilder<RP> {
         })
     }
 
-    /// Creates a new [`EventHubConsumerClient`] from an existing [`EventHubConnection`].
+    /// Creates a new [`ConsumerClient`] from an existing [`Connection`].
     pub fn with_connection(
         self,
         consumer_group: impl Into<String>,
-        connection: &mut EventHubConnection,
-        client_options: EventHubConsumerClientOptions,
-    ) -> EventHubConsumerClient<RP> {
-        EventHubConsumerClient {
+        connection: &mut Connection,
+        client_options: ConsumerClientOptions,
+    ) -> ConsumerClient<RP> {
+        ConsumerClient {
             connection: connection.clone_as_shared(),
             retry_policy_marker: PhantomData,
             options: client_options,
@@ -256,15 +256,15 @@ impl<RP> EventHubConsumerClientBuilder<RP> {
     }
 }
 
-impl<RP> EventHubConsumerClient<RP>
+impl<RP> ConsumerClient<RP>
 where
-    RP: EventHubsRetryPolicy + From<EventHubsRetryOptions> + Send + Unpin,
+    RP: EventHubsRetryPolicy + From<RetryOptions> + Send + Unpin,
 {
     /// Retrieves information about the Event Hub instance the client is associated with, including
     /// the number of partitions present and their identifiers.
     pub async fn get_event_hub_properties(
         &mut self,
-    ) -> Result<EventHubProperties, azure_core::Error> {
+    ) -> Result<Properties, azure_core::Error> {
         self.connection
             .get_properties(RP::from(self.options.retry_options.clone()))
             .await

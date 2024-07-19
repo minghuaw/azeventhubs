@@ -3,7 +3,7 @@ use std::time::Duration;
 use rand::Rng;
 
 use crate::{
-    event_hubs_retry_mode::EventHubsRetryMode, event_hubs_retry_options::EventHubsRetryOptions,
+    event_hubs_retry_mode::RetryMode, event_hubs_retry_options::RetryOptions,
     event_hubs_retry_policy::EventHubsRetryPolicy,
 };
 
@@ -14,7 +14,7 @@ const DEFAULT_JITTER_FACTOR: f64 = 0.08;
 /// Default retry policy used by the client.
 #[derive(Debug, Clone)]
 pub struct BasicRetryPolicy {
-    options: EventHubsRetryOptions,
+    options: RetryOptions,
     jitter_factor: f64,
     // /// The minimum number of seconds to wait before retrying when the service
     // /// indicates that the client should throttle its requests.
@@ -31,7 +31,7 @@ pub struct BasicRetryPolicy {
 
 impl BasicRetryPolicy {
     /// The set of options used to configure the retry policy.
-    pub fn options(&self) -> &EventHubsRetryOptions {
+    pub fn options(&self) -> &RetryOptions {
         &self.options
     }
 
@@ -41,8 +41,8 @@ impl BasicRetryPolicy {
     }
 }
 
-impl From<EventHubsRetryOptions> for BasicRetryPolicy {
-    fn from(options: EventHubsRetryOptions) -> Self {
+impl From<RetryOptions> for BasicRetryPolicy {
+    fn from(options: RetryOptions) -> Self {
         Self {
             options,
             jitter_factor: DEFAULT_JITTER_FACTOR,
@@ -72,10 +72,10 @@ impl EventHubsRetryPolicy for BasicRetryPolicy {
 
         let base_jitter_seconds = self.options.delay.as_secs_f64() * self.jitter_factor;
         let retry_delay = match &self.options.mode {
-            EventHubsRetryMode::Fixed => {
+            RetryMode::Fixed => {
                 calculate_fixed_delay(self.options.delay.as_secs_f64(), base_jitter_seconds)
             }
-            EventHubsRetryMode::Exponential => calculate_exponential_delay(
+            RetryMode::Exponential => calculate_exponential_delay(
                 self.options.delay.as_secs_f64(),
                 base_jitter_seconds,
                 attempt_count,

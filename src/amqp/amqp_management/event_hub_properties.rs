@@ -8,7 +8,7 @@ use fe2o3_amqp_types::{
 use serde_amqp::Value;
 use time::OffsetDateTime;
 
-use crate::{amqp::amqp_management::response_map, event_hubs_properties::EventHubProperties};
+use crate::{amqp::amqp_management::response_map, event_hubs_properties::Properties};
 
 use super::{
     EVENT_HUB_RESOURCE_TYPE_VALUE, READ_OPERATION_VALUE, RESOURCE_NAME_KEY, RESOURCE_TYPE_KEY,
@@ -49,7 +49,7 @@ fn encode_application_properties(
 impl<'a> Request for EventHubPropertiesRequest<'a> {
     const OPERATION: &'static str = READ_OPERATION_VALUE;
 
-    type Response = EventHubProperties;
+    type Response = Properties;
 
     type Body = ();
 
@@ -66,7 +66,7 @@ impl<'a> Request for EventHubPropertiesRequest<'a> {
 impl<'a> Request for &'a EventHubPropertiesRequest<'a> {
     const OPERATION: &'static str = READ_OPERATION_VALUE;
 
-    type Response = EventHubProperties;
+    type Response = Properties;
 
     type Body = ();
 
@@ -83,7 +83,7 @@ impl<'a> Request for &'a EventHubPropertiesRequest<'a> {
 impl<'a> Request for &'a mut EventHubPropertiesRequest<'a> {
     const OPERATION: &'static str = READ_OPERATION_VALUE;
 
-    type Response = EventHubProperties;
+    type Response = Properties;
 
     type Body = ();
 
@@ -99,7 +99,7 @@ impl<'a> Request for &'a mut EventHubPropertiesRequest<'a> {
 
 type EventHubPropertiesResponseBody = OrderedMap<String, Value>;
 
-impl Response for EventHubProperties {
+impl Response for Properties {
     type Body = EventHubPropertiesResponseBody;
 
     const STATUS_CODE: u16 = 200;
@@ -131,7 +131,7 @@ impl Response for EventHubProperties {
             _ => return Err(ManagementError::DecodeError(None)),
         };
 
-        Ok(EventHubProperties {
+        Ok(Properties {
             name,
             created_on,
             partition_ids,

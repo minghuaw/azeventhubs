@@ -1,8 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
 use azeventhubs::{
-    consumer::{EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions},
-    EventHubConnection, EventHubsRetryOptions, ReceivedEventData,
+    consumer::{ConsumerClient, ConsumerClientOptions, ReadEventOptions},
+    Connection, RetryOptions, ReceivedEventData,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 use futures_util::{lock::Mutex, Stream};
@@ -38,12 +38,12 @@ fn criterion_benchmark(c: &mut Criterion) {
     let n_prep = 10000;
     let partitions = rt.block_on(utils::prepare_events_on_all_partitions(n_prep));
 
-    let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
-    let retry_options = EventHubsRetryOptions {
+    let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+    let retry_options = RetryOptions {
         try_timeout: Duration::from_secs(1), // fail early for benchmark
         ..Default::default()
     };
-    let client_options = EventHubConsumerClientOptions {
+    let client_options = ConsumerClientOptions {
         retry_options,
         ..Default::default()
     };
@@ -94,14 +94,14 @@ fn criterion_benchmark(c: &mut Criterion) {
     let mut consumer_clients = rt
         .block_on(async {
             let mut consumer_clients = Vec::new();
-            let mut connection = EventHubConnection::new_from_connection_string(
+            let mut connection = Connection::new_from_connection_string(
                 connection_string,
                 event_hub_name,
                 Default::default(),
             )
             .await?;
             for _ in partitions.iter() {
-                let consumer = EventHubConsumerClient::with_connection(
+                let consumer = ConsumerClient::with_connection(
                     consumer_group,
                     &mut connection,
                     client_options.clone(),

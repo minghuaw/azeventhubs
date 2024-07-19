@@ -2,13 +2,13 @@ use time::OffsetDateTime;
 
 /// A set of information for an Event Hub.
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub struct EventHubProperties {
+pub struct Properties {
     pub(crate) name: String,
     pub(crate) created_on: OffsetDateTime,
     pub(crate) partition_ids: Vec<String>,
 }
 
-impl EventHubProperties {
+impl Properties {
     /// The name of the Event Hub, specific to the namespace that contains it.
     pub fn name(&self) -> &str {
         &self.name

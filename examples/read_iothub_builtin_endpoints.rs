@@ -1,5 +1,5 @@
 use azeventhubs::consumer::{
-    EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions,
+    ConsumerClient, ConsumerClientOptions, ReadEventOptions,
 };
 use futures_util::StreamExt;
 
@@ -10,11 +10,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = dotenv::from_filename(".env");
 
     let connection_string = std::env::var("IOTHUB_BUILTIN_CONNECTION_STRING")?;
-    let options = EventHubConsumerClientOptions::default();
+    let options = ConsumerClientOptions::default();
 
     // Create a consumer client
-    let mut consumer_client = EventHubConsumerClient::new_from_connection_string(
-        // EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+    let mut consumer_client = ConsumerClient::new_from_connection_string(
+        // ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
         "$default",
         connection_string.clone(),
         None,

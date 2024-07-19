@@ -33,7 +33,7 @@ use crate::{
     authorization::{event_hub_claim, event_hub_token_credential::EventHubTokenCredential},
     consumer::EventPosition,
     core::{RecoverableTransport, TransportProducerFeatures},
-    event_hubs_transport_type::EventHubsTransportType,
+    event_hubs_transport_type::TransportType,
     producer::PartitionPublishingOptions,
     util::sharable::Sharable,
 };
@@ -73,7 +73,7 @@ pub(crate) struct AmqpConnectionScope {
     pub(crate) event_hub_name: Arc<String>,
 
     /// The type of transport to use for communication.
-    pub(crate) transport: EventHubsTransportType,
+    pub(crate) transport: TransportType,
 
     // Keep a copy of credential for recovery
     pub(crate) credential: Arc<EventHubTokenCredential>,
@@ -145,7 +145,7 @@ impl AmqpConnectionScope {
         connection_endpoint: Url,
         event_hub_name: Arc<String>,
         credential: EventHubTokenCredential,
-        transport_type: EventHubsTransportType,
+        transport_type: TransportType,
         connection_idle_timeout: StdDuration,
         identifier: Option<String>,
     ) -> Result<Self, AmqpConnectionScopeError> {
@@ -205,7 +205,7 @@ impl AmqpConnectionScope {
     async fn open_connection(
         service_endpoint: &Url,
         connection_endpoint: &Url,
-        transport_type: EventHubsTransportType,
+        transport_type: TransportType,
         id: &str,
         idle_timeout: StdDuration,
     ) -> Result<ConnectionHandle<()>, AmqpConnectionScopeError> {
@@ -222,11 +222,11 @@ impl AmqpConnectionScope {
 
         match transport_type {
             #[cfg(not(target_arch = "wasm32"))]
-            EventHubsTransportType::AmqpTcp => connection_builder
+            TransportType::AmqpTcp => connection_builder
                 .open(connection_endpoint.clone())
                 .await
                 .map_err(Into::into),
-            EventHubsTransportType::AmqpWebSockets => {
+            TransportType::AmqpWebSockets => {
                 let addr = connection_endpoint.join(WEBSOCKETS_PATH_SUFFIX)?;
                 let ws_stream = WebSocketStream::connect(addr).await?;
 
@@ -679,7 +679,7 @@ async fn recover_connection(
     connection: &mut AmqpConnection,
     service_endpoint: &Url,
     connection_endpoint: &Url,
-    transport_type: EventHubsTransportType,
+    transport_type: TransportType,
     id: &str,
     idle_timeout: StdDuration,
 ) -> Result<(), AmqpConnectionScopeError> {

@@ -1,6 +1,6 @@
 use url::Url;
 
-use crate::EventHubsTransportType;
+use crate::TransportType;
 
 /// Errors that can occur when building the signature authorization resource for connection.
 #[derive(Debug, thiserror::Error)]
@@ -25,7 +25,7 @@ pub enum BuildResourceError {
 /// Builds the fully-qualified identifier for the connection, for use with signature-based
 /// authorization.
 pub fn build_connection_signature_authorization_resource(
-    transport_type: EventHubsTransportType,
+    transport_type: TransportType,
     fully_qualified_namespace: Option<&str>,
     event_hub_name: Option<&str>,
 ) -> Result<String, BuildResourceError> {

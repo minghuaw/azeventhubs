@@ -4,16 +4,16 @@ use std::path::PathBuf;
 
 use azeventhubs::{
     consumer::{
-        self, EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, EventStream,
+        self, ConsumerClient, ConsumerClientOptions, EventPosition, EventStream,
         ReadEventOptions,
     },
-    producer::{EventHubProducerClient, SendEventOptions},
-    BasicRetryPolicy, EventHubConnection, ReceivedEventData,
+    producer::{ProducerClient, SendEventOptions},
+    BasicRetryPolicy, Connection, ReceivedEventData,
 };
 use futures_util::{Stream, StreamExt};
 
-pub type Producer = EventHubProducerClient<BasicRetryPolicy>;
-pub type Consumer = EventHubConsumerClient<BasicRetryPolicy>;
+pub type Producer = ProducerClient<BasicRetryPolicy>;
+pub type Consumer = ConsumerClient<BasicRetryPolicy>;
 
 pub fn setup_dotenv() -> Result<PathBuf, dotenv::Error> {
     dotenv::from_filename(".env")
@@ -107,7 +107,7 @@ pub async fn prepare_events_on_all_partitions(n: usize) -> Vec<String> {
     let event_hub_name = std::env::var("EVENT_HUB_BENCHMARK_NAME").unwrap();
 
     // prepare events
-    let mut producer = EventHubProducerClient::new_from_connection_string(
+    let mut producer = ProducerClient::new_from_connection_string(
         connection_string.clone(),
         event_hub_name.clone(),
         Default::default(),
@@ -125,11 +125,11 @@ pub async fn create_dedicated_connection_consumer(
     consumer_group: &str,
     connection_string: String,
     event_hub_name: String,
-    client_options: EventHubConsumerClientOptions,
+    client_options: ConsumerClientOptions,
 ) -> Result<Vec<Consumer>, Box<dyn std::error::Error>> {
     let mut consumer_clients = Vec::new();
     for _ in 0..count {
-        let consumer = EventHubConsumerClient::new_from_connection_string(
+        let consumer = ConsumerClient::new_from_connection_string(
             consumer_group,
             connection_string.clone(),
             event_hub_name.clone(),
@@ -146,17 +146,17 @@ pub async fn create_shared_connection_consumer(
     consumer_group: &str,
     connection_string: String,
     event_hub_name: String,
-    client_options: EventHubConsumerClientOptions,
-) -> Result<(EventHubConnection, Vec<Consumer>), Box<dyn std::error::Error>> {
+    client_options: ConsumerClientOptions,
+) -> Result<(Connection, Vec<Consumer>), Box<dyn std::error::Error>> {
     let mut consumer_clients = Vec::new();
-    let mut connection = EventHubConnection::new_from_connection_string(
+    let mut connection = Connection::new_from_connection_string(
         connection_string,
         event_hub_name,
         Default::default(),
     )
     .await?;
     for _ in 0..count {
-        let consumer = EventHubConsumerClient::with_connection(
+        let consumer = ConsumerClient::with_connection(
             consumer_group,
             &mut connection,
             client_options.clone(),

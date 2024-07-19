@@ -17,25 +17,25 @@ use crate::{
     },
     consumer::EventPosition,
     core::{RecoverableTransport, TransportClient, TransportProducerFeatures, RecoverableError},
-    event_hubs_connection_option::EventHubConnectionOptions,
-    event_hubs_connection_string_properties::EventHubsConnectionStringProperties,
-    event_hubs_properties::EventHubProperties,
+    event_hubs_connection_option::ConnectionOptions,
+    event_hubs_connection_string_properties::ConnectionStringProperties,
+    event_hubs_properties::Properties,
     event_hubs_retry_policy::EventHubsRetryPolicy,
-    event_hubs_transport_type::EventHubsTransportType,
+    event_hubs_transport_type::TransportType,
     producer::PartitionPublishingOptions,
     PartitionProperties, util,
 };
 
-/// Error with the `EventHubConnection`.
+/// Error with the `Connection`.
 #[derive(Debug, thiserror::Error)]
-pub enum EventHubConnectionError {
+pub enum ConnectionError {
     /// The event hub name is not specified.
     #[error("The EventHub name is not specified")]
     EventHubNameIsNotSpecified,
 }
 
-impl From<EventHubConnectionError> for azure_core::error::Error {
-    fn from(error: EventHubConnectionError) -> Self {
+impl From<ConnectionError> for azure_core::error::Error {
+    fn from(error: ConnectionError) -> Self {
         use azure_core::error::ErrorKind;
 
         azure_core::Error::new(ErrorKind::Other, error)
@@ -47,21 +47,21 @@ impl From<EventHubConnectionError> for azure_core::error::Error {
 /// Event Hub producers and/or consumers, or may be used as a dedicated connection for a single
 /// producer or consumer client.
 #[derive(Debug)]
-pub struct EventHubConnection {
+pub struct Connection {
     fully_qualified_namespace: Arc<String>,
     event_hub_name: Arc<String>,
     pub(crate) inner: AmqpClient,
 }
 
-impl EventHubConnection {
-    /// Creates a new [`EventHubConnection`] from a connection string.
+impl Connection {
+    /// Creates a new [`Connection`] from a connection string.
     pub async fn new_from_connection_string(
         connection_string: impl AsRef<str>,
         event_hub_name: impl Into<Option<String>>,
-        options: EventHubConnectionOptions,
+        options: ConnectionOptions,
     ) -> Result<Self, azure_core::Error> {
         let connection_string_properties =
-            EventHubsConnectionStringProperties::parse(connection_string.as_ref())?;
+            ConnectionStringProperties::parse(connection_string.as_ref())?;
 
         let event_hub_name =
             match event_hub_name
@@ -71,7 +71,7 @@ impl EventHubConnection {
                 None => connection_string_properties
                     .event_hub_name
                     .map(|s| s.to_string())
-                    .ok_or(EventHubConnectionError::EventHubNameIsNotSpecified)?,
+                    .ok_or(ConnectionError::EventHubNameIsNotSpecified)?,
                 Some(s) => s,
             };
 
@@ -141,12 +141,12 @@ impl EventHubConnection {
         .await
     }
 
-    /// Creates a new [`EventHubConnection`] from a namespace and a credential.
+    /// Creates a new [`Connection`] from a namespace and a credential.
     pub async fn new_from_credential(
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: impl Into<EventHubTokenCredential>,
-        options: EventHubConnectionOptions,
+        options: ConnectionOptions,
     ) -> Result<Self, azure_core::Error> {
         let fully_qualified_namespace = fully_qualified_namespace.into();
         let event_hub_name = event_hub_name.into();
@@ -170,12 +170,12 @@ impl EventHubConnection {
         })
     }
 
-    /// Creates a new [`EventHubConnection`] from a namespace and a [`AzureNamedKeyCredential`].
+    /// Creates a new [`Connection`] from a namespace and a [`AzureNamedKeyCredential`].
     pub async fn new_from_named_key_credential(
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureNamedKeyCredential,
-        options: EventHubConnectionOptions,
+        options: ConnectionOptions,
     ) -> Result<Self, azure_core::Error> {
         let fully_qualified_namespace = fully_qualified_namespace.into();
         let event_hub_name = event_hub_name.into();
@@ -196,12 +196,12 @@ impl EventHubConnection {
         .await
     }
 
-    /// Creates a new [`EventHubConnection`] from a namespace and a [`AzureSasCredential`].
+    /// Creates a new [`Connection`] from a namespace and a [`AzureSasCredential`].
     pub async fn new_from_sas_credential(
         fully_qualified_namespace: impl Into<String>,
         event_hub_name: impl Into<String>,
         credential: AzureSasCredential,
-        options: EventHubConnectionOptions,
+        options: ConnectionOptions,
     ) -> Result<Self, azure_core::Error> {
         let shared_access_credential = SharedAccessCredential::try_from_sas_credential(credential)?;
         Self::new_from_credential(
@@ -214,11 +214,11 @@ impl EventHubConnection {
     }
 }
 
-impl EventHubConnection {
+impl Connection {
     pub(crate) async fn get_properties<RP>(
         &mut self,
         retry_policy: RP,
-    ) -> Result<EventHubProperties, azure_core::Error>
+    ) -> Result<Properties, azure_core::Error>
     where
         RP: EventHubsRetryPolicy + Send,
     {
@@ -456,7 +456,7 @@ impl EventHubConnection {
     }
 }
 
-impl EventHubConnection {
+impl Connection {
     pub(crate) fn clone_as_shared(&mut self) -> Self {
         Self {
             fully_qualified_namespace: self.fully_qualified_namespace.clone(),
@@ -495,11 +495,11 @@ impl EventHubConnection {
     }
 }
 
-// internal static string BuildConnectionSignatureAuthorizationResource(EventHubsTransportType transportType,
+// internal static string BuildConnectionSignatureAuthorizationResource(TransportType transportType,
 //     string fullyQualifiedNamespace,
 //     string eventHubName)
 fn build_connection_signature_authorization_resource(
-    transport_type: EventHubsTransportType,
+    transport_type: TransportType,
     fully_qualified_namespace: &str,
     event_hub_name: &str,
 ) -> Result<String, azure_core::Error> {
@@ -548,7 +548,7 @@ fn build_connection_signature_authorization_resource(
     Ok(builder.to_string().to_lowercase())
 }
 
-impl RecoverableTransport for EventHubConnection {
+impl RecoverableTransport for Connection {
     type RecoverError = azure_core::Error;
 
     async fn recover(&mut self) -> Result<(), Self::RecoverError> {

@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use azeventhubs::producer::{
-    EventHubProducerClient, EventHubProducerClientOptions, SendEventOptions,
+    ProducerClient, ProducerClientOptions, SendEventOptions,
 };
 
 #[macro_use]
@@ -22,9 +22,9 @@ cfg_not_wasm32! {
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
         let partition_id = "0";
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
+            ProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
                 .await
                 .unwrap();
 
@@ -56,9 +56,9 @@ cfg_not_wasm32! {
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
         let partition_id = "0";
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
+            ProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
                 .await
                 .unwrap();
 
@@ -92,9 +92,9 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
+            ProducerClient::new_from_connection_string(connection_string, event_hub_name, options)
                 .await
                 .unwrap();
         let properties = producer_client.get_event_hub_properties().await.unwrap();

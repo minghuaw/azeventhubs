@@ -2,9 +2,9 @@
 
 use azeventhubs::{
     consumer::{
-        EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, ReadEventOptions,
+        ConsumerClient, ConsumerClientOptions, EventPosition, ReadEventOptions,
     },
-    EventHubsRetryOptions, MaxRetries,
+    RetryOptions, MaxRetries,
 };
 use futures_util::StreamExt;
 
@@ -20,14 +20,14 @@ cfg_not_wasm32! {
     /// The testing event hub is configured with a retention period of only 1 hour, so this is
     /// necessary to make sure that there are events to read.
     async fn prepare_events_on_eventhubs(num: usize, partition: Option<&str>) {
-        use azeventhubs::producer::{SendEventOptions, EventHubProducerClientOptions, EventHubProducerClient};
+        use azeventhubs::producer::{SendEventOptions, ProducerClientOptions, ProducerClient};
 
         common::setup_dotenv();
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING_WITH_ENTITY_PATH").unwrap();
-        let options = EventHubProducerClientOptions::default();
+        let options = ProducerClientOptions::default();
         let mut producer_client =
-            EventHubProducerClient::new_from_connection_string(connection_string, None, options)
+            ProducerClient::new_from_connection_string(connection_string, None, options)
                 .await
                 .unwrap();
 
@@ -54,15 +54,15 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+        let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
 
-        let mut retry_options = EventHubsRetryOptions::default();
+        let mut retry_options = RetryOptions::default();
         retry_options.max_retries = MaxRetries::try_from(3).unwrap();
         retry_options.try_timeout = std::time::Duration::from_secs(5);
-        let mut options = EventHubConsumerClientOptions::default();
+        let mut options = ConsumerClientOptions::default();
         options.retry_options = retry_options;
 
-        let mut consumer = EventHubConsumerClient::new_from_connection_string(
+        let mut consumer = ConsumerClient::new_from_connection_string(
             consumer_group,
             connection_string,
             event_hub_name,
@@ -106,15 +106,15 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+        let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
 
-        let mut retry_options = EventHubsRetryOptions::default();
+        let mut retry_options = RetryOptions::default();
         retry_options.max_retries = MaxRetries::try_from(3).unwrap();
         retry_options.try_timeout = std::time::Duration::from_secs(5);
-        let mut options = EventHubConsumerClientOptions::default();
+        let mut options = ConsumerClientOptions::default();
         options.retry_options = retry_options;
 
-        let mut consumer = EventHubConsumerClient::new_from_connection_string(
+        let mut consumer = ConsumerClient::new_from_connection_string(
             consumer_group,
             connection_string,
             event_hub_name,
@@ -156,16 +156,16 @@ cfg_not_wasm32! {
 
         let connection_string = std::env::var("EVENT_HUBS_CONNECTION_STRING").unwrap();
         let event_hub_name = std::env::var("EVENT_HUB_NAME").unwrap();
-        let consumer_group = EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
+        let consumer_group = ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME;
 
-        let mut retry_options = EventHubsRetryOptions::default();
+        let mut retry_options = RetryOptions::default();
         retry_options.max_retries = MaxRetries::try_from(3).unwrap();
         retry_options.try_timeout = std::time::Duration::from_secs(5);
-        let mut options = EventHubConsumerClientOptions::default();
+        let mut options = ConsumerClientOptions::default();
         options.retry_options = retry_options;
 
         let handle = tokio::spawn(async move {
-            let mut consumer = EventHubConsumerClient::new_from_connection_string(
+            let mut consumer = ConsumerClient::new_from_connection_string(
                 consumer_group,
                 connection_string,
                 event_hub_name,

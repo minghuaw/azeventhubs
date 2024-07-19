@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::event_hubs_retry_mode::EventHubsRetryMode;
+use crate::event_hubs_retry_mode::RetryMode;
 
 const MAX_RETRIES: u32 = 100;
 const DEFAULT_MAX_RETRIES: u32 = 3;
@@ -46,7 +46,7 @@ impl TryFrom<u32> for MaxRetries {
 /// The set of options that can be specified to influence how
 /// retry attempts are made, and a failure is eligible to be retried.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct EventHubsRetryOptions {
+pub struct RetryOptions {
     /// The maximum number of retry attempts before considering the associated operation to have failed
     pub max_retries: MaxRetries,
 
@@ -61,29 +61,29 @@ pub struct EventHubsRetryOptions {
 
     /// The approach to use for calculating retry delays
     ///
-    /// The default retry mode is [`EventHubsRetryMode::Exponential`]
-    pub mode: EventHubsRetryMode,
+    /// The default retry mode is [`RetryMode::Exponential`]
+    pub mode: RetryMode,
 }
 
-impl Default for EventHubsRetryOptions {
+impl Default for RetryOptions {
     fn default() -> Self {
         Self {
             max_retries: MaxRetries::default(),
             delay: DEFAULT_DELAY,
             maximum_delay: DEFAULT_MAXIMUM_DELAY,
             try_timeout: DEFAULT_TRY_TIMEOUT,
-            mode: EventHubsRetryMode::default(),
+            mode: RetryMode::default(),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{EventHubsRetryOptions, MaxRetries, event_hubs_retry_options::{DEFAULT_MAXIMUM_DELAY, DEFAULT_DELAY, DEFAULT_TRY_TIMEOUT}, EventHubsRetryMode};
+    use crate::{RetryOptions, MaxRetries, event_hubs_retry_options::{DEFAULT_MAXIMUM_DELAY, DEFAULT_DELAY, DEFAULT_TRY_TIMEOUT}, RetryMode};
 
     #[test]
     fn default_values() {
-        let options = EventHubsRetryOptions {
+        let options = RetryOptions {
             max_retries: MaxRetries::try_from(5).unwrap(),
             ..Default::default()
         };
@@ -92,6 +92,6 @@ mod tests {
         assert_eq!(options.delay, DEFAULT_DELAY);
         assert_eq!(options.maximum_delay, DEFAULT_MAXIMUM_DELAY);
         assert_eq!(options.try_timeout, DEFAULT_TRY_TIMEOUT);
-        assert_eq!(options.mode, EventHubsRetryMode::default());
+        assert_eq!(options.mode, RetryMode::default());
     }
 }

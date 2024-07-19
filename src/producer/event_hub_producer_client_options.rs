@@ -1,20 +1,20 @@
 use std::collections::HashMap;
 
 use crate::{
-    core::TransportProducerFeatures, event_hubs_retry_options::EventHubsRetryOptions,
-    EventHubConnectionOptions,
+    core::TransportProducerFeatures, event_hubs_retry_options::RetryOptions,
+    ConnectionOptions,
 };
 
 use super::PartitionPublishingOptions;
 
 /// The set of options that can be specified when creating an Event Hub producer.
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub struct EventHubProducerClientOptions {
+pub struct ProducerClientOptions {
     /// The set of options that can be specified when creating an Event Hub connection.
-    pub connection_options: EventHubConnectionOptions,
+    pub connection_options: ConnectionOptions,
 
     /// The set of options that can be specified when retrying operations.
-    pub retry_options: EventHubsRetryOptions,
+    pub retry_options: RetryOptions,
 
     /// The identifier of the producer. If not specified, a UUID will be generated.
     pub identifier: Option<String>,
@@ -23,7 +23,7 @@ pub struct EventHubProducerClientOptions {
     pub partition_options: HashMap<String, PartitionPublishingOptions>,
 }
 
-impl EventHubProducerClientOptions {
+impl ProducerClientOptions {
     pub(crate) fn create_features(&self) -> TransportProducerFeatures {
         TransportProducerFeatures::None
     }

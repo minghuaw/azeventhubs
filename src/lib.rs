@@ -11,16 +11,16 @@
 //!
 //! ```no_run
 //! use azeventhubs::producer::{
-//! EventHubProducerClient, EventHubProducerClientOptions, SendEventOptions,
+//! ProducerClient, ProducerClientOptions, SendEventOptions,
 //! };
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let mut producer_client =
-//!         EventHubProducerClient::new_from_connection_string(
+//!         ProducerClient::new_from_connection_string(
 //!             "<CONNECTION_STRING>", // Replace with your connection string
 //!             "<EVENT_HUB_NAME>".to_string(), // Replace with your hub name
-//!             EventHubProducerClientOptions::default()
+//!             ProducerClientOptions::default()
 //!        ).await?;
 //!
 //!     let partition_ids = producer_client.get_partition_ids().await?;
@@ -39,17 +39,17 @@
 //!
 //! ```no_run
 //! use futures_util::StreamExt;
-//! use azeventhubs::consumer::{EventHubConsumerClient, EventHubConsumerClientOptions, EventPosition, ReadEventOptions};
+//! use azeventhubs::consumer::{ConsumerClient, ConsumerClientOptions, EventPosition, ReadEventOptions};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     // Create a consumer client
 //!     let mut consumer_client =
-//!         EventHubConsumerClient::new_from_connection_string(
-//!             EventHubConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
+//!         ConsumerClient::new_from_connection_string(
+//!             ConsumerClient::DEFAULT_CONSUMER_GROUP_NAME,
 //!             "<CONNECTION_STRING>", // Replace with your connection string
 //!             "<EVENT_HUB_NAME>".to_string(), // Replace with your hub name
-//!             EventHubConsumerClientOptions::default(),
+//!             ConsumerClientOptions::default(),
 //!         ).await?;
 //!
 //!     let partition_ids = consumer_client.get_partition_ids().await?;
