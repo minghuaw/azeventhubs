@@ -1,7 +1,5 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
+use tokio::sync::Mutex;
 
 use azeventhubs::{
     consumer::{EventHubConsumerClient, EventHubConsumerClientOptions, ReadEventOptions},
@@ -38,7 +36,7 @@ async fn bench_connection_consumer_streams(
     futures_util::future::join_all(futures)
         .await
         .into_iter()
-        .fold(Ok(()), |acc, res| acc.and(res))
+        .try_fold((), |_, res| res)
         .unwrap();
 }
 
@@ -85,10 +83,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
     rt.block_on(async {
-        let consumers = Arc::try_unwrap(consumer_clients)
-            .unwrap()
-            .into_inner()
-            .unwrap();
+        let consumers = Arc::try_unwrap(consumer_clients).unwrap().into_inner();
         for consumer in consumers {
             consumer.close().await.unwrap();
         }
@@ -112,10 +107,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         })
     });
     rt.block_on(async {
-        let consumers = Arc::try_unwrap(consumer_clients)
-            .unwrap()
-            .into_inner()
-            .unwrap();
+        let consumers = Arc::try_unwrap(consumer_clients).unwrap().into_inner();
         for consumer in consumers {
             consumer.close().await.unwrap();
         }

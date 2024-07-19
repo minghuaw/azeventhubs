@@ -56,20 +56,20 @@ pub(crate) const OFFSET: SymbolRef = SymbolRef("x-opt-offset");
 /// The partition hashing key used for grouping a batch of events together with the intent of routing to a single partition.
 pub(crate) const PARTITION_KEY: SymbolRef = SymbolRef("x-opt-partition-key");
 
-/// The message property that identifies the last sequence number enqueued for a partition.
-pub(crate) const PARTITION_LAST_ENQUEUED_SEQUENCE_NUMBER: SymbolRef =
-    SymbolRef("last_enqueued_sequence_number");
+// /// The message property that identifies the last sequence number enqueued for a partition.
+// pub(crate) const PARTITION_LAST_ENQUEUED_SEQUENCE_NUMBER: SymbolRef =
+//     SymbolRef("last_enqueued_sequence_number");
 
-/// The message property that identifies the last offset enqueued for a partition.
-pub(crate) const PARTITION_LAST_ENQUEUED_OFFSET: SymbolRef = SymbolRef("last_enqueued_offset");
+// /// The message property that identifies the last offset enqueued for a partition.
+// pub(crate) const PARTITION_LAST_ENQUEUED_OFFSET: SymbolRef = SymbolRef("last_enqueued_offset");
 
-/// The message property that identifies the last time enqueued for a partition.
-pub(crate) const PARTITION_LAST_ENQUEUED_TIME_UTC: SymbolRef = SymbolRef("last_enqueued_time_utc");
+// /// The message property that identifies the last time enqueued for a partition.
+// pub(crate) const PARTITION_LAST_ENQUEUED_TIME_UTC: SymbolRef = SymbolRef("last_enqueued_time_utc");
 
-/// The message property that identifies the time that the last enqueued event information was
-/// received from the service.
-pub(crate) const LAST_PARTITION_PROPERTIES_RETRIEVAL_TIME_UTC: SymbolRef =
-    SymbolRef("runtime_info_retrieval_time_utc");
+// /// The message property that identifies the time that the last enqueued event information was
+// /// received from the service.
+// pub(crate) const LAST_PARTITION_PROPERTIES_RETRIEVAL_TIME_UTC: SymbolRef =
+//     SymbolRef("runtime_info_retrieval_time_utc");
 
 // /// The set of descriptors for well-known <see cref="DescribedType" />
 // /// property types.
