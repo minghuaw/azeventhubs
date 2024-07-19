@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use azeventhubs::{
     consumer::{ConsumerClient, ConsumerClientOptions, ReadEventOptions},
-    Connection, RetryOptions, ReceivedEventData,
+    Connection, ReceivedEventData, RetryOptions,
 };
 use criterion::{criterion_group, criterion_main, Criterion};
 use futures_util::{lock::Mutex, Stream};

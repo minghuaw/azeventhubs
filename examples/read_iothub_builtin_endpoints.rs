@@ -1,6 +1,4 @@
-use azeventhubs::consumer::{
-    ConsumerClient, ConsumerClientOptions, ReadEventOptions,
-};
+use azeventhubs::consumer::{ConsumerClient, ConsumerClientOptions, ReadEventOptions};
 use futures_util::StreamExt;
 
 #[tokio::main]

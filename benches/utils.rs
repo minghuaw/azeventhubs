@@ -4,8 +4,7 @@ use std::path::PathBuf;
 
 use azeventhubs::{
     consumer::{
-        self, ConsumerClient, ConsumerClientOptions, EventPosition, EventStream,
-        ReadEventOptions,
+        self, ConsumerClient, ConsumerClientOptions, EventPosition, EventStream, ReadEventOptions,
     },
     producer::{ProducerClient, SendEventOptions},
     BasicRetryPolicy, Connection, ReceivedEventData,

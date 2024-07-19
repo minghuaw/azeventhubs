@@ -1,10 +1,8 @@
 #![cfg(all(test, feature = "test_e2e"))]
 
 use azeventhubs::{
-    consumer::{
-        ConsumerClient, ConsumerClientOptions, EventPosition, ReadEventOptions,
-    },
-    RetryOptions, MaxRetries,
+    consumer::{ConsumerClient, ConsumerClientOptions, EventPosition, ReadEventOptions},
+    MaxRetries, RetryOptions,
 };
 use futures_util::StreamExt;
 

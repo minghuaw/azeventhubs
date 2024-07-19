@@ -1,6 +1,4 @@
-use azeventhubs::producer::{
-    ProducerClient, ProducerClientOptions, SendEventOptions,
-};
+use azeventhubs::producer::{ProducerClient, ProducerClientOptions, SendEventOptions};
 use azure_identity::{DefaultAzureCredential, TokenCredentialOptions};
 
 #[tokio::main]
@@ -15,13 +13,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let default_credential =
         DefaultAzureCredential::create(TokenCredentialOptions::default()).unwrap();
 
-    let mut producer_client = ProducerClient::new_from_credential(
-        fqn,
-        event_hub_name,
-        default_credential,
-        options,
-    )
-    .await?;
+    let mut producer_client =
+        ProducerClient::new_from_credential(fqn, event_hub_name, default_credential, options)
+            .await?;
 
     log::info!("Sending a test event");
 

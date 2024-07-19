@@ -1,9 +1,7 @@
 #![cfg(all(test, feature = "test_e2e"))]
 
 use azeventhubs::{
-    producer::{
-        CreateBatchOptions, ProducerClient, ProducerClientOptions, SendEventOptions,
-    },
+    producer::{CreateBatchOptions, ProducerClient, ProducerClientOptions, SendEventOptions},
     Connection, ConnectionOptions,
 };
 use azure_identity::TokenCredentialOptions;

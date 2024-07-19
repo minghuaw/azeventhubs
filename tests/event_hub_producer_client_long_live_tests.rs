@@ -2,9 +2,7 @@
 
 use std::time::Duration;
 
-use azeventhubs::producer::{
-    ProducerClient, ProducerClientOptions, SendEventOptions,
-};
+use azeventhubs::producer::{ProducerClient, ProducerClientOptions, SendEventOptions};
 
 #[macro_use]
 mod cfg;
