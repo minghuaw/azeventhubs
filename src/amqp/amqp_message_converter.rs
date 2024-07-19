@@ -55,7 +55,7 @@ pub(crate) struct BatchEnvelope {
 }
 
 pub(crate) fn create_envelope_from_events(
-    events: impl Iterator<Item = EventData> + ExactSizeIterator,
+    events: impl ExactSizeIterator<Item = EventData>,
     partition_key: Option<String>,
 ) -> Option<BatchEnvelope> {
     build_amqp_batch_from_events(events, partition_key)
@@ -80,7 +80,7 @@ fn build_amqp_message_from_event(event: EventData, partition_key: Option<String>
 
 #[inline]
 fn build_amqp_batch_from_events(
-    events: impl Iterator<Item = EventData> + ExactSizeIterator,
+    events: impl ExactSizeIterator<Item = EventData>,
     partition_key: Option<String>,
 ) -> Option<BatchEnvelope> {
     let partition_key_clone = partition_key.clone();
@@ -92,7 +92,7 @@ fn build_amqp_batch_from_events(
 ///
 /// If `force_batch` is set to true, then a batch will be created even if there is only one message.
 pub(crate) fn build_amqp_batch_from_messages(
-    mut source: impl Iterator<Item = Message<Data>> + ExactSizeIterator,
+    mut source: impl ExactSizeIterator<Item = Message<Data>>,
     partition_key: Option<String>,
 ) -> Option<BatchEnvelope> {
     let total = source.len();

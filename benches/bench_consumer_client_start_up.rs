@@ -53,7 +53,7 @@ async fn bench_dedicated_connection_consumers_concurrent(partitions: Vec<String>
     futures_util::future::join_all(futures)
         .await
         .into_iter()
-        .fold(Ok(()), |acc, res| acc.and(res))
+        .try_fold((), |_, res| res)
         .unwrap();
 }
 
@@ -90,7 +90,6 @@ async fn bench_dedicated_connection_consumers_sequential(partitions: Vec<String>
     let futures = consumers
         .into_iter()
         .zip(partitions)
-        .into_iter()
         .map(|(mut consumer, partition_id)| async {
             let partition_id = partition_id;
             consume_events(
@@ -108,7 +107,7 @@ async fn bench_dedicated_connection_consumers_sequential(partitions: Vec<String>
     futures_util::future::join_all(futures)
         .await
         .into_iter()
-        .fold(Ok(()), |acc, res| acc.and(res))
+        .try_fold((), |_, res| res)
         .unwrap();
 }
 
@@ -160,7 +159,7 @@ async fn bench_shared_connection_consumers(partitions: Vec<String>, n: usize) {
     futures_util::future::join_all(futures)
         .await
         .into_iter()
-        .fold(Ok(()), |acc, res| acc.and(res))
+        .try_fold((), |_, res| res)
         .unwrap();
 }
 

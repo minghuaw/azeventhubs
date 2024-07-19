@@ -107,10 +107,6 @@ impl TransportClient for AmqpClient {
         self.connection_scope.is_disposed.load(Ordering::Relaxed)
     }
 
-    fn service_endpoint(&self) -> &Url {
-        &self.connection_scope.service_endpoint
-    }
-
     async fn get_properties(
         &mut self,
     ) -> Result<EventHubProperties, Self::RequestResponseError> {

@@ -263,7 +263,7 @@ where
 
     async fn send(
         &mut self,
-        events: impl Iterator<Item = EventData> + ExactSizeIterator + Send,
+        events: impl ExactSizeIterator<Item = EventData> + Send,
         options: SendEventOptions,
     ) -> Result<(), Self::SendError> {
         // TODO: check size of envelope and make sure it's not too big

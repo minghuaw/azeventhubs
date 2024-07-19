@@ -258,7 +258,6 @@ mod tests {
     const SAS_KEY: &str = "sasKey";
     const SAS: &str = "fullsas";
 
-    ///
     struct Expected {
         endpoint: Option<&'static str>,
         event_hub: Option<&'static str>,

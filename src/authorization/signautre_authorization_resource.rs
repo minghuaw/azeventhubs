@@ -59,7 +59,7 @@ pub fn build_connection_signature_authorization_resource(
     let fqn = match fully_qualified_namespace {
         // If there is no namespace, there is no basis for a URL and the
         // resource is empty.
-        Some(fqn) if fqn.is_empty() => return Ok(String::new()),
+        Some("") => return Ok(String::new()),
         None => return Ok(String::new()),
         Some(fqn) => fqn,
     };

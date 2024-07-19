@@ -1,5 +1,3 @@
-use url::Url;
-
 use crate::{
     consumer::EventPosition, event_hubs_properties::EventHubProperties,
     event_hubs_retry_policy::EventHubsRetryPolicy, producer::PartitionPublishingOptions,
@@ -24,8 +22,6 @@ pub trait TransportClient: Sized {
     type DisposeError: std::error::Error;
 
     fn is_closed(&self) -> bool;
-
-    fn service_endpoint(&self) -> &Url;
 
     async fn get_properties(
         &mut self,

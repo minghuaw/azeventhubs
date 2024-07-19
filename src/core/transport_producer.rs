@@ -18,7 +18,7 @@ pub(crate) trait TransportProducer {
 
     async fn send(
         &mut self,
-        events: impl Iterator<Item = EventData> + ExactSizeIterator + Send,
+        events: impl ExactSizeIterator<Item = EventData> + Send,
         options: SendEventOptions,
     ) -> Result<(), Self::SendError>;
 

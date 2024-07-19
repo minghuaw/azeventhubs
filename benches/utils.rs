@@ -41,7 +41,7 @@ pub async fn fill_partition(
     let options = SendEventOptions::default().with_partition_id(partition_id);
     for i in 0..n {
         let event = format!("Benchmark event {}", i);
-        if let Err(_) = batch.try_add(event) {
+        if batch.try_add(event).is_err() {
             producer.send_batch(batch, options.clone()).await?;
             batch = producer.create_batch(Default::default()).await?;
         }
@@ -60,7 +60,7 @@ pub async fn fill_partitions(
     let properties = producer.get_event_hub_properties().await?;
 
     for partition_id in properties.partition_ids() {
-        fill_partition(producer, &partition_id, n).await?;
+        fill_partition(producer, partition_id, n).await?;
     }
 
     Ok(properties.partition_ids().to_vec())
@@ -167,7 +167,7 @@ pub async fn create_shared_connection_consumer(
 }
 
 pub async fn create_streams<'a>(
-    consumer_clients: &'a mut Vec<Consumer>,
+    consumer_clients: &'a mut [Consumer],
     partitions: &Vec<String>,
     read_event_options: ReadEventOptions,
 ) -> Result<Vec<EventStream<'a, BasicRetryPolicy>>, azure_core::Error> {
@@ -175,11 +175,7 @@ pub async fn create_streams<'a>(
     for (consumer, partition_id) in consumer_clients.iter_mut().zip(partitions) {
         let starting_position = EventPosition::earliest();
         let stream = consumer
-            .read_events_from_partition(
-                &partition_id,
-                starting_position,
-                read_event_options.clone(),
-            )
+            .read_events_from_partition(partition_id, starting_position, read_event_options.clone())
             .await?;
         streams.push(stream);
     }

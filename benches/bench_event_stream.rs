@@ -22,7 +22,7 @@ where
     futures_util::future::join_all(futures)
         .await
         .into_iter()
-        .fold(Ok(()), |acc, res| acc.and(res))
+        .try_fold((), |_, res| res)
         .unwrap();
 }
 
