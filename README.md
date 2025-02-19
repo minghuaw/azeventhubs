@@ -1,4 +1,8 @@
-# azeventhubs
+# ⚠️ Deprecation Notice ⚠️
+
+This crate is deprecated with the release of the official AMQP based event hubs sdk [azure_messaging_eventhubs](https://crates.io/crates/azure_messaging_eventhubs)
+
+## azeventhubs
 
 An unofficial and experimental Azure Event Hubs client library for Rust.
 
